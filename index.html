@@ -370,6 +370,7 @@ create policy "Kan radera egna rapporter"
       <div class="nav-item" onclick="showPage('historik',this)" id="nav-historik"><span class="nav-icon">◈</span> Alla rapporter</div>
       <div class="nav-item" onclick="showPage('mina',this)" id="nav-mina"><span class="nav-icon">◉</span> Mina rapporter</div>
       <div class="nav-item" onclick="showPage('sammanstallning',this)" id="nav-sammanstallning"><span class="nav-icon">▣</span> Sammanställning</div>
+      <div class="nav-item" onclick="showPage('projekt',this)" id="nav-projekt"><span class="nav-icon">🏗</span> Projekt</div>
       <div class="nav-section-label">System</div>
       <div class="nav-item" onclick="showPage('installningar',this)" id="nav-installningar"><span class="nav-icon">⚙</span> Inställningar</div>
     </nav>
@@ -540,6 +541,133 @@ create policy "Kan radera egna rapporter"
         </div>
       </div>
 
+      <!-- ── PROJEKT ── -->
+      <div id="page-projekt" class="page">
+        <div id="projekt-list-view">
+          <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:1rem">
+            <div><h2>Projekt</h2><p>Projektregister med riskanalys</p></div>
+            <button class="btn btn-primary" onclick="showNyttProjekt()">+ Nytt projekt</button>
+          </div>
+          <div id="projekt-list"></div>
+        </div>
+
+        <div id="projekt-form-view" style="display:none">
+          <div class="page-header" style="display:flex;align-items:center;gap:1rem">
+            <button class="btn btn-ghost btn-sm" onclick="showProjektList()">← Tillbaka</button>
+            <div><h2 id="projekt-form-title">Nytt projekt</h2></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-icon blue">🏗</div><div><div class="card-title">Projektinformation</div></div></div>
+            <div class="form-grid">
+              <div class="field"><label>Projektnamn</label><input type="text" id="p-namn" placeholder="t.ex. Renovering Storgatan 5"></div>
+              <div class="field"><label>Kund / Beställare</label><input type="text" id="p-kund" placeholder="t.ex. Bolaget AB"></div>
+              <div class="field"><label>Plats / Adress</label><input type="text" id="p-plats" placeholder="t.ex. Stockholm"></div>
+              <div class="field"><label>Status</label>
+                <select id="p-status">
+                  <option>Aktiv</option>
+                  <option>Planerad</option>
+                  <option>Pausad</option>
+                  <option>Avslutad</option>
+                </select>
+              </div>
+              <div class="field"><label>Startdatum</label><input type="date" id="p-start"></div>
+              <div class="field"><label>Slutdatum (planerat)</label><input type="date" id="p-slut"></div>
+            </div>
+            <div class="form-grid cols-1" style="margin-top:1rem">
+              <div class="field"><label>Projektbeskrivning</label><textarea id="p-beskrivning" placeholder="Beskriv projektet, omfattning, syfte..."></textarea></div>
+            </div>
+            <div class="btn-row">
+              <button class="btn btn-green" onclick="sparaProjekt()" id="spara-projekt-btn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>
+                Spara projekt
+              </button>
+              <button class="btn btn-ghost" onclick="showProjektList()">Avbryt</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="projekt-detail-view" style="display:none">
+          <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem">
+            <div style="display:flex;align-items:center;gap:1rem">
+              <button class="btn btn-ghost btn-sm" onclick="showProjektList()">← Tillbaka</button>
+              <div>
+                <h2 id="detalj-namn">Projektnamn</h2>
+                <p id="detalj-meta"></p>
+              </div>
+            </div>
+            <div style="display:flex;gap:0.5rem">
+              <button class="btn btn-ghost btn-sm" onclick="redigeraProjekt()">✏ Redigera</button>
+              <button class="btn btn-danger btn-sm" onclick="raderaProjekt()">Ta bort</button>
+            </div>
+          </div>
+
+          <div class="card" id="detalj-info-card">
+            <div class="card-header"><div class="card-icon blue">📋</div><div><div class="card-title">Projektbeskrivning</div></div></div>
+            <p id="detalj-beskrivning" style="font-size:13.5px;line-height:1.7;color:var(--rc-text-sec)"></p>
+            <div style="display:flex;gap:2rem;flex-wrap:wrap;margin-top:1rem;padding-top:1rem;border-top:1px solid var(--rc-border)">
+              <div><div style="font-size:11px;color:var(--rc-text-muted);text-transform:uppercase;letter-spacing:0.06em">Kund</div><div id="detalj-kund" style="font-size:13px;font-weight:600;margin-top:3px"></div></div>
+              <div><div style="font-size:11px;color:var(--rc-text-muted);text-transform:uppercase;letter-spacing:0.06em">Plats</div><div id="detalj-plats" style="font-size:13px;font-weight:600;margin-top:3px"></div></div>
+              <div><div style="font-size:11px;color:var(--rc-text-muted);text-transform:uppercase;letter-spacing:0.06em">Period</div><div id="detalj-period" style="font-size:13px;font-weight:600;margin-top:3px"></div></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-icon red">⚠️</div>
+              <div><div class="card-title">Riskanalys</div><div class="card-subtitle">Identifierade risker för projektet</div></div>
+              <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="showRiskForm()">+ Lägg till risk</button>
+            </div>
+
+            <div id="risk-form" style="display:none;background:var(--rc-surface);border:1px dashed var(--rc-border-light);border-radius:var(--r-sm);padding:1rem;margin-bottom:1rem">
+              <div class="form-grid" style="gap:0.75rem">
+                <div class="field span-2"><label>Riskbeskrivning</label><input type="text" id="risk-namn" placeholder="Beskriv risken..."></div>
+                <div class="field"><label>Kategori</label>
+                  <select id="risk-kategori">
+                    <option>Säkerhet</option><option>Ekonomi</option><option>Tidplan</option><option>Kvalitet</option><option>Miljö</option><option>Personal</option><option>Teknik</option><option>Övrigt</option>
+                  </select>
+                </div>
+                <div class="field"><label>Ansvarig</label><input type="text" id="risk-ansvarig" placeholder="Namn"></div>
+                <div class="field">
+                  <label>Sannolikhet (1–5)</label>
+                  <select id="risk-sannolikhet">
+                    <option value="1">1 — Mycket låg</option>
+                    <option value="2">2 — Låg</option>
+                    <option value="3" selected>3 — Medium</option>
+                    <option value="4">4 — Hög</option>
+                    <option value="5">5 — Mycket hög</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Konsekvens (1–5)</label>
+                  <select id="risk-konsekvens">
+                    <option value="1">1 — Försumbar</option>
+                    <option value="2">2 — Liten</option>
+                    <option value="3" selected>3 — Måttlig</option>
+                    <option value="4">4 — Stor</option>
+                    <option value="5">5 — Katastrofal</option>
+                  </select>
+                </div>
+                <div class="field span-2"><label>Åtgärd / Hantering</label><textarea id="risk-atgard" placeholder="Hur hanteras / undviks risken?" style="min-height:60px"></textarea></div>
+              </div>
+              <div style="display:flex;gap:0.5rem;margin-top:0.75rem">
+                <button class="btn btn-green btn-sm" onclick="sparaRisk()">Spara risk</button>
+                <button class="btn btn-ghost btn-sm" onclick="hideRiskForm()">Avbryt</button>
+              </div>
+            </div>
+
+            <div id="risk-list"></div>
+
+            <div style="margin-top:1rem;padding:0.75rem 1rem;background:var(--rc-surface);border-radius:var(--r-sm);font-size:12px;color:var(--rc-text-muted)">
+              <strong style="color:var(--rc-text-sec)">Risknivå = Sannolikhet × Konsekvens:</strong>
+              &nbsp;<span style="color:var(--rc-green)">● 1–4 Låg</span>
+              &nbsp;<span style="color:var(--rc-yellow)">● 5–9 Medium</span>
+              &nbsp;<span style="color:#ff9500">● 10–14 Hög</span>
+              &nbsp;<span style="color:var(--rc-red)">● 15–25 Kritisk</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- ── INSTÄLLNINGAR ── -->
       <div id="page-installningar" class="page">
         <div class="page-header"><h2>Inställningar</h2><p>Din profil och ersättningsnivåer</p></div>
@@ -586,6 +714,9 @@ let SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSI
 let sb = null;
 let currentUser = null;
 let allReports = [];
+let allProjekt = [];
+let allRisker = [];
+let aktivtProjektId = null;
 
 let settings = JSON.parse(localStorage.getItem('rc_settings') || JSON.stringify({
   namn:'', roll:'', ansnr:'', avd:'',
@@ -766,7 +897,7 @@ async function deleteReport(id, isOwner) {
 // ══════════════════════════════════════
 // PAGES
 // ══════════════════════════════════════
-const pageTitles = { rapport:'Ny rapport', historik:'Alla rapporter', mina:'Mina rapporter', sammanstallning:'Sammanställning', installningar:'Inställningar' };
+const pageTitles = { rapport:'Ny rapport', historik:'Alla rapporter', mina:'Mina rapporter', sammanstallning:'Sammanställning', projekt:'Projekt', installningar:'Inställningar' };
 function showPage(name, el) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -777,6 +908,7 @@ function showPage(name, el) {
   if (name==='historik') renderHistory();
   if (name==='mina') renderMina();
   if (name==='sammanstallning') renderSummary();
+  if (name==='projekt') { showProjektList(); fetchProjekt(); }
   if (name==='installningar') loadSettings();
 }
 
@@ -1110,6 +1242,209 @@ function toast(msg,color='var(--rc-green)'){
   t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);
 }
 function today(){return new Date().toISOString().slice(0,10)}
+// ══════════════════════════════════════
+// PROJEKT
+// ══════════════════════════════════════
+async function fetchProjekt() {
+  const { data, error } = await sb.from('projekt').select('*').order('skapad_at', { ascending: false });
+  if (error) { toast('Kunde inte hämta projekt: '+error.message,'var(--rc-red)'); return; }
+  allProjekt = data || [];
+  renderProjektList();
+}
+
+function showProjektList() {
+  document.getElementById('projekt-list-view').style.display = 'block';
+  document.getElementById('projekt-form-view').style.display = 'none';
+  document.getElementById('projekt-detail-view').style.display = 'none';
+  aktivtProjektId = null;
+  renderProjektList();
+}
+
+function showNyttProjekt() {
+  aktivtProjektId = null;
+  document.getElementById('projekt-form-title').textContent = 'Nytt projekt';
+  document.getElementById('spara-projekt-btn').textContent = 'Spara projekt';
+  ['p-namn','p-kund','p-plats','p-beskrivning','p-start','p-slut'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('p-status').value = 'Aktiv';
+  document.getElementById('projekt-list-view').style.display = 'none';
+  document.getElementById('projekt-form-view').style.display = 'block';
+}
+
+function redigeraProjekt() {
+  const p = allProjekt.find(x => x.id === aktivtProjektId);
+  if (!p) return;
+  document.getElementById('projekt-form-title').textContent = 'Redigera projekt';
+  document.getElementById('p-namn').value = p.namn || '';
+  document.getElementById('p-kund').value = p.kund || '';
+  document.getElementById('p-plats').value = p.plats || '';
+  document.getElementById('p-beskrivning').value = p.beskrivning || '';
+  document.getElementById('p-start').value = p.start_datum || '';
+  document.getElementById('p-slut').value = p.slut_datum || '';
+  document.getElementById('p-status').value = p.status || 'Aktiv';
+  document.getElementById('projekt-detail-view').style.display = 'none';
+  document.getElementById('projekt-form-view').style.display = 'block';
+}
+
+async function sparaProjekt() {
+  const namn = document.getElementById('p-namn').value.trim();
+  if (!namn) { toast('Ange projektnamn','var(--rc-red)'); return; }
+  const data = {
+    namn, kund: document.getElementById('p-kund').value.trim(),
+    plats: document.getElementById('p-plats').value.trim(),
+    beskrivning: document.getElementById('p-beskrivning').value.trim(),
+    start_datum: document.getElementById('p-start').value || null,
+    slut_datum: document.getElementById('p-slut').value || null,
+    status: document.getElementById('p-status').value,
+    user_id: currentUser.id
+  };
+  let error;
+  if (aktivtProjektId) {
+    ({ error } = await sb.from('projekt').update(data).eq('id', aktivtProjektId));
+  } else {
+    ({ error } = await sb.from('projekt').insert(data));
+  }
+  if (error) { toast('Fel: '+error.message,'var(--rc-red)'); return; }
+  toast('✓ Projekt sparat!');
+  await fetchProjekt();
+  showProjektList();
+}
+
+async function raderaProjekt() {
+  if (!confirm('Ta bort projektet och alla dess risker?')) return;
+  const { error } = await sb.from('projekt').delete().eq('id', aktivtProjektId);
+  if (error) { toast('Fel: '+error.message,'var(--rc-red)'); return; }
+  toast('Projekt borttaget');
+  await fetchProjekt();
+  showProjektList();
+}
+
+function renderProjektList() {
+  const el = document.getElementById('projekt-list');
+  if (!allProjekt.length) {
+    el.innerHTML = '<div class="empty-state"><div class="ei">🏗</div><p>Inga projekt än — skapa ditt första!</p></div>'; return;
+  }
+  el.innerHTML = allProjekt.map(p => {
+    const statusColor = p.status==='Aktiv'?'badge-green':p.status==='Planerad'?'badge-purple':p.status==='Pausad'?'badge-yellow':'badge-gray';
+    return `<div class="report-card" onclick="visaProjektDetalj(${p.id})" style="cursor:pointer">
+      <div class="report-card-top">
+        <div style="flex:1">
+          <div class="report-card-meta">
+            <span class="report-date">${esc(p.namn)}</span>
+            <span class="badge ${statusColor}">${p.status}</span>
+            ${p.kund?`<span class="badge badge-gray">${esc(p.kund)}</span>`:''}
+          </div>
+          <div class="report-card-body">
+            ${p.plats?`<span class="report-card-stat">📍 ${esc(p.plats)}</span>`:''}
+            ${p.start_datum?`<span class="report-card-stat">📅 ${p.start_datum}${p.slut_datum?' → '+p.slut_datum:''}</span>`:''}
+          </div>
+          ${p.beskrivning?`<div style="font-size:12px;color:var(--rc-text-sec);margin-top:8px">${esc(p.beskrivning).substring(0,120)}${p.beskrivning.length>120?'…':''}</div>`:''}
+        </div>
+        <div style="color:var(--rc-text-muted);font-size:18px">›</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function visaProjektDetalj(id) {
+  aktivtProjektId = id;
+  const p = allProjekt.find(x => x.id === id);
+  if (!p) return;
+  document.getElementById('projekt-list-view').style.display = 'none';
+  document.getElementById('projekt-detail-view').style.display = 'block';
+  document.getElementById('detalj-namn').textContent = p.namn;
+  const statusColor = p.status==='Aktiv'?'var(--rc-green)':p.status==='Planerad'?'var(--rc-accent)':p.status==='Pausad'?'var(--rc-yellow)':'var(--rc-text-muted)';
+  document.getElementById('detalj-meta').innerHTML = `<span style="color:${statusColor};font-weight:600">${p.status}</span>${p.kund?' · '+p.kund:''}`;
+  document.getElementById('detalj-beskrivning').textContent = p.beskrivning || 'Ingen beskrivning tillagd.';
+  document.getElementById('detalj-kund').textContent = p.kund || '—';
+  document.getElementById('detalj-plats').textContent = p.plats || '—';
+  document.getElementById('detalj-period').textContent = p.start_datum ? `${p.start_datum}${p.slut_datum?' → '+p.slut_datum:''}` : '—';
+  hideRiskForm();
+  await fetchRisker(id);
+}
+
+// ══════════════════════════════════════
+// RISKANALYS
+// ══════════════════════════════════════
+async function fetchRisker(projektId) {
+  const { data, error } = await sb.from('riskanalys').select('*').eq('projekt_id', projektId).order('riskniva', { ascending: false });
+  if (error) { toast('Kunde inte hämta risker','var(--rc-red)'); return; }
+  allRisker = data || [];
+  renderRiskList();
+}
+
+function showRiskForm() { document.getElementById('risk-form').style.display = 'block'; document.getElementById('risk-namn').focus(); }
+function hideRiskForm() {
+  document.getElementById('risk-form').style.display = 'none';
+  ['risk-namn','risk-ansvarig','risk-atgard'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('risk-sannolikhet').value = '3';
+  document.getElementById('risk-konsekvens').value = '3';
+}
+
+async function sparaRisk() {
+  const risk = document.getElementById('risk-namn').value.trim();
+  if (!risk) { toast('Beskriv risken','var(--rc-red)'); return; }
+  const s = parseInt(document.getElementById('risk-sannolikhet').value);
+  const k = parseInt(document.getElementById('risk-konsekvens').value);
+  const { error } = await sb.from('riskanalys').insert({
+    projekt_id: aktivtProjektId,
+    risk, kategori: document.getElementById('risk-kategori').value,
+    sannolikhet: s, konsekvens: k,
+    atgard: document.getElementById('risk-atgard').value.trim(),
+    ansvarig: document.getElementById('risk-ansvarig').value.trim(),
+    status: 'Öppen'
+  });
+  if (error) { toast('Fel: '+error.message,'var(--rc-red)'); return; }
+  toast('✓ Risk tillagd!');
+  hideRiskForm();
+  await fetchRisker(aktivtProjektId);
+}
+
+async function raderaRisk(id) {
+  if (!confirm('Ta bort risken?')) return;
+  await sb.from('riskanalys').delete().eq('id', id);
+  await fetchRisker(aktivtProjektId);
+}
+
+async function toggleRiskStatus(id, nuvarandeStatus) {
+  const nyStatus = nuvarandeStatus === 'Öppen' ? 'Hanterad' : 'Öppen';
+  await sb.from('riskanalys').update({ status: nyStatus }).eq('id', id);
+  await fetchRisker(aktivtProjektId);
+}
+
+function risknivaBadge(niva) {
+  if (niva >= 15) return `<span style="background:rgba(255,77,109,0.15);color:var(--rc-red);padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">🔴 Kritisk (${niva})</span>`;
+  if (niva >= 10) return `<span style="background:rgba(255,149,0,0.15);color:#ff9500;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">🟠 Hög (${niva})</span>`;
+  if (niva >= 5)  return `<span style="background:rgba(255,201,71,0.15);color:var(--rc-yellow);padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">🟡 Medium (${niva})</span>`;
+  return `<span style="background:var(--rc-green-dim);color:var(--rc-green);padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">🟢 Låg (${niva})</span>`;
+}
+
+function renderRiskList() {
+  const el = document.getElementById('risk-list');
+  if (!allRisker.length) {
+    el.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--rc-text-muted);font-size:13px">Inga risker identifierade ännu</div>'; return;
+  }
+  el.innerHTML = allRisker.map(r => `
+    <div class="list-row" style="${r.status==='Hanterad'?'opacity:0.5':''}">
+      <div class="list-row-info">
+        <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-bottom:4px">
+          ${risknivaBadge(r.riskniva)}
+          <span class="badge badge-gray">${r.kategori||'Övrigt'}</span>
+          ${r.status==='Hanterad'?`<span class="badge badge-green">✓ Hanterad</span>`:''}
+        </div>
+        <div class="list-row-title">${esc(r.risk)}</div>
+        <div class="list-row-sub">
+          Sannolikhet: ${r.sannolikhet} · Konsekvens: ${r.konsekvens}
+          ${r.ansvarig?' · Ansvarig: '+esc(r.ansvarig):''}
+        </div>
+        ${r.atgard?`<div style="font-size:12px;color:var(--rc-text-sec);margin-top:4px">💡 ${esc(r.atgard)}</div>`:''}
+      </div>
+      <div class="list-row-actions" style="flex-direction:column;gap:4px">
+        <button class="btn btn-ghost btn-xs" onclick="toggleRiskStatus(${r.id},'${r.status}')">${r.status==='Öppen'?'Markera hanterad':'Återöppna'}</button>
+        <button class="btn btn-danger btn-xs" onclick="raderaRisk(${r.id})">Ta bort</button>
+      </div>
+    </div>`).join('');
+}
+
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 </script>
 </body>
