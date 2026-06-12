@@ -407,10 +407,13 @@ create policy "Kan radera egna rapporter"
           <div class="form-grid">
             <div class="field"><label>Datum</label><input type="date" id="r-datum"></div>
             <div class="field"><label>Projekt / Arbetsorder</label><input type="text" id="r-projekt" placeholder="t.ex. AO-1042"></div>
-            <div class="field"><label>Starttid</label><input type="time" id="r-start" oninput="calcTime()"></div>
-            <div class="field"><label>Sluttid</label><input type="time" id="r-slut" oninput="calcTime()"></div>
+            <div class="field"><label>Starttid arbete</label><input type="time" id="r-start" oninput="calcTime()"></div>
+            <div class="field"><label>Sluttid arbete</label><input type="time" id="r-slut" oninput="calcTime()"></div>
             <div class="field"><label>Rast (minuter)</label><input type="number" id="r-rast" value="0" min="0" oninput="calcTime()"></div>
-            <div class="field"><label>Beräknade timmar</label><input type="text" id="r-timmar" readonly placeholder="Beräknas automatiskt"></div>
+            <div class="field"><label>Arbetstid</label><input type="text" id="r-timmar" readonly placeholder="Beräknas automatiskt"></div>
+            <div class="field"><label>Resetid start</label><input type="time" id="r-resa-start" oninput="calcResetid()"></div>
+            <div class="field"><label>Resetid slut</label><input type="time" id="r-resa-slut" oninput="calcResetid()"></div>
+            <div class="field"><label>Resetid totalt</label><input type="text" id="r-resetid" readonly placeholder="Beräknas automatiskt"></div>
           </div>
           <div class="form-grid cols-1" style="margin-top:1rem">
             <div class="field"><label>Arbetsbeskrivning</label><textarea id="r-beskrivning" placeholder="Beskriv vad som utfördes under dagen..."></textarea></div>
@@ -725,6 +728,9 @@ async function saveReport() {
     slut_tid: document.getElementById('r-slut').value,
     rast_min: parseInt(document.getElementById('r-rast').value)||0,
     timmar: getTimmar(),
+    resa_start: document.getElementById('r-resa-start').value,
+    resa_slut: document.getElementById('r-resa-slut').value,
+    resetid: getResetid(),
     beskrivning: document.getElementById('r-beskrivning').value.trim(),
     plats: document.getElementById('r-plats').value.trim(),
     kund: document.getElementById('r-kund').value.trim(),
@@ -816,6 +822,7 @@ function renderReportList(el, reports) {
           </div>
           <div class="report-card-body">
             <span class="report-card-stat">⏱ <strong>${r.timmar||0}h</strong>&nbsp;(${r.start_tid||''}–${r.slut_tid||''})</span>
+            ${r.resetid>0?`<span class="report-card-stat">🚌 Resetid: <strong>${r.resetid}h</strong></span>`:''}
             ${r.plats?`<span class="report-card-stat">📍 ${esc(r.plats)}</span>`:''}
             ${r.km>0?`<span class="report-card-stat">🚗 ${r.km} km</span>`:''}
             ${matSum>0?`<span class="report-card-stat">📦 ${matSum.toFixed(0)} kr</span>`:''}
@@ -924,6 +931,7 @@ function viewReport(id) {
   <div class="section"><h2>Tid</h2>
   <table><tr><th>Start</th><th>Slut</th><th>Rast</th><th>Arbetstid</th></tr>
   <tr><td>${r.start_tid||'—'}</td><td>${r.slut_tid||'—'}</td><td>${r.rast_min||0} min</td><td><strong>${r.timmar||0} timmar</strong></td></tr></table>
+  ${r.resetid>0?`<div style="margin-top:0.75rem;background:#f0efff;border-radius:8px;padding:0.6rem 1rem;font-size:13px">🚌 <strong>Resetid:</strong> ${r.resa_start||''}–${r.resa_slut||''} = <strong>${r.resetid} timmar</strong></div>`:''}
   ${r.beskrivning?`<p style="margin-top:1rem;font-size:13px;color:#444;line-height:1.6">${esc(r.beskrivning)}</p>`:''}</div>
   <div class="section"><h2>Ersättningar</h2>
   <table><tr><th>Post</th><th>Detalj</th><th style="text-align:right">Belopp</th></tr>
@@ -986,6 +994,24 @@ function calcTime() {
   }
   document.getElementById('r-timmar').value=''; return 0;
 }
+function calcResetid() {
+  const s=document.getElementById('r-resa-start').value, e=document.getElementById('r-resa-slut').value;
+  if(s&&e){
+    const [sh,sm]=s.split(':').map(Number),[eh,em]=e.split(':').map(Number);
+    let mins=(eh*60+em)-(sh*60+sm); if(mins<0)mins+=1440;
+    const h=Math.floor(mins/60),m=mins%60;
+    document.getElementById('r-resetid').value=`${h}h ${m}min  (${(mins/60).toFixed(2)} h)`;
+    return mins/60;
+  }
+  document.getElementById('r-resetid').value=''; return 0;
+}
+function getResetid(){
+  const s=document.getElementById('r-resa-start').value,e=document.getElementById('r-resa-slut').value;
+  if(!s||!e)return 0;
+  const [sh,sm]=s.split(':').map(Number),[eh,em]=e.split(':').map(Number);
+  let mins=(eh*60+em)-(sh*60+sm); if(mins<0)mins+=1440;
+  return parseFloat((mins/60).toFixed(2));
+}
 function getTimmar(){
   const s=document.getElementById('r-start').value,e=document.getElementById('r-slut').value;
   const rast=parseInt(document.getElementById('r-rast').value)||0;
@@ -1034,6 +1060,7 @@ function clearForm(){
   ['r-projekt','r-start','r-slut','r-beskrivning','r-plats','r-kund','r-kommentar'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('r-rast').value='0';document.getElementById('r-km').value='0';
   document.getElementById('r-fordon').value='';document.getElementById('r-timmar').value='';
+  document.getElementById('r-resa-start').value='';document.getElementById('r-resa-slut').value='';document.getElementById('r-resetid').value='';
   currentMaterial=[];currentUtrustning=[];toggleState={lunch:'nej',traktamente:'nej'};
   document.querySelectorAll('.chip-group').forEach(g=>g.querySelectorAll('.chip').forEach((b,i)=>{b.className='chip';if(i===0)b.classList.add('on-accent')}));
   renderMaterialList();renderUtrustningList();
