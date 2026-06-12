@@ -665,6 +665,23 @@ create policy "Kan radera egna rapporter"
               &nbsp;<span style="color:var(--rc-red)">● 15–25 Kritisk</span>
             </div>
           </div>
+          <!-- DOKUMENT -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-icon blue">📎</div>
+              <div><div class="card-title">Dokument & Filer</div><div class="card-subtitle">Word, PDF och övriga projektfiler</div></div>
+            </div>
+
+            <div style="margin-bottom:1rem">
+              <label for="fil-upload" style="display:inline-flex;align-items:center;gap:8px;padding:0.6rem 1.2rem;background:var(--rc-surface);border:1px dashed var(--rc-border-light);border-radius:var(--r-sm);cursor:pointer;font-size:13px;font-weight:500;color:var(--rc-text-sec);transition:all 0.15s">
+                <span style="font-size:16px">⬆</span> Välj fil att ladda upp
+              </label>
+              <input type="file" id="fil-upload" style="display:none" accept=".doc,.docx,.pdf,.xlsx,.xls,.png,.jpg,.jpeg,.txt" onchange="laddaUppFil(this)">
+              <span id="upload-status" style="margin-left:1rem;font-size:12px;color:var(--rc-text-muted)"></span>
+            </div>
+
+            <div id="fil-list"></div>
+          </div>
         </div>
       </div>
 
@@ -1360,6 +1377,7 @@ async function visaProjektDetalj(id) {
   document.getElementById('detalj-period').textContent = p.start_datum ? `${p.start_datum}${p.slut_datum?' → '+p.slut_datum:''}` : '—';
   hideRiskForm();
   await fetchRisker(id);
+  await renderFilList();
 }
 
 // ══════════════════════════════════════
@@ -1443,6 +1461,64 @@ function renderRiskList() {
         <button class="btn btn-danger btn-xs" onclick="raderaRisk(${r.id})">Ta bort</button>
       </div>
     </div>`).join('');
+}
+
+// ══════════════════════════════════════
+// FILER / STORAGE
+// ══════════════════════════════════════
+async function laddaUppFil(input) {
+  const fil = input.files[0];
+  if (!fil) return;
+  const statusEl = document.getElementById('upload-status');
+  statusEl.textContent = '⏳ Laddar upp...';
+  const filnamn = `projekt_${aktivtProjektId}/${Date.now()}_${fil.name}`;
+  const { error } = await sb.storage.from('projektfiler').upload(filnamn, fil);
+  input.value = '';
+  if (error) { statusEl.textContent = '❌ Fel: ' + error.message; return; }
+  statusEl.textContent = '✓ Uppladdad!';
+  setTimeout(() => statusEl.textContent = '', 3000);
+  await renderFilList();
+}
+
+async function renderFilList() {
+  const el = document.getElementById('fil-list');
+  const { data, error } = await sb.storage.from('projektfiler').list(`projekt_${aktivtProjektId}`, { sortBy: { column: 'created_at', order: 'desc' } });
+  if (error || !data || !data.length) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--rc-text-muted);padding:0.5rem 0">Inga filer uppladdade ännu</div>'; return;
+  }
+  el.innerHTML = data.map(f => {
+    const ikon = f.name.endsWith('.pdf') ? '📄' : f.name.endsWith('.docx')||f.name.endsWith('.doc') ? '📝' : f.name.endsWith('.xlsx')||f.name.endsWith('.xls') ? '📊' : f.name.match(/\.(png|jpg|jpeg)$/i) ? '🖼' : '📎';
+    const visningsnamn = f.name.replace(/^\d+_/, '');
+    const storlek = f.metadata?.size ? (f.metadata.size/1024 < 1000 ? (f.metadata.size/1024).toFixed(0)+' KB' : (f.metadata.size/1048576).toFixed(1)+' MB') : '';
+    return `<div class="list-row">
+      <div class="list-row-info">
+        <div class="list-row-title">${ikon} ${esc(visningsnamn)}</div>
+        ${storlek?`<div class="list-row-sub">${storlek}</div>`:''}
+      </div>
+      <div class="list-row-actions">
+        <button class="btn btn-primary btn-xs" onclick="laddaNerFil('${f.name}')">⬇ Ladda ner</button>
+        <button class="btn btn-danger btn-xs" onclick="raderaFil('${f.name}')">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function laddaNerFil(filnamn) {
+  const { data, error } = await sb.storage.from('projektfiler').download(`projekt_${aktivtProjektId}/${filnamn}`);
+  if (error) { toast('Kunde inte ladda ner filen','var(--rc-red)'); return; }
+  const url = URL.createObjectURL(data);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filnamn.replace(/^\d+_/, '');
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function raderaFil(filnamn) {
+  if (!confirm('Ta bort filen?')) return;
+  await sb.storage.from('projektfiler').remove([`projekt_${aktivtProjektId}/${filnamn}`]);
+  toast('Fil borttagen');
+  await renderFilList();
 }
 
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
