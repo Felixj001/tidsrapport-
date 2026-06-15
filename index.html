@@ -485,10 +485,21 @@ textarea{resize:vertical;min-height:90px}
         </div>
 
         <div class="card">
-          <div class="ch"><div class="ch-ic">🚐</div><div><div class="ch-t">Restid & Körsträcka</div></div></div>
-          <div class="fg">
-            <div class="fld"><label>Restid start</label><input type="time" id="t-rstart" oninput="calcRes()"></div>
-            <div class="fld"><label>Restid slut</label><input type="time" id="t-rslut" oninput="calcRes()"></div>
+          <div class="ch"><div class="ch-ic">🚐</div><div><div class="ch-t">Restid & Körsträcka</div><div class="ch-s">Dit- och hemresa</div></div></div>
+          <div style="font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:0.6rem">↗ Resa dit</div>
+          <div class="fg c3">
+            <div class="fld"><label>Start</label><input type="time" id="t-rstart" oninput="calcRes()"></div>
+            <div class="fld"><label>Slut</label><input type="time" id="t-rslut" oninput="calcRes()"></div>
+            <div class="fld"><label>Restid dit</label><input type="text" id="t-restid-dit" readonly placeholder="Beräknas"></div>
+          </div>
+          <div style="font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:0.07em;margin:1rem 0 0.6rem">↙ Resa hem</div>
+          <div class="fg c3">
+            <div class="fld"><label>Start</label><input type="time" id="t-hstart" oninput="calcRes()"></div>
+            <div class="fld"><label>Slut</label><input type="time" id="t-hslut" oninput="calcRes()"></div>
+            <div class="fld"><label>Restid hem</label><input type="text" id="t-restid-hem" readonly placeholder="Beräknas"></div>
+          </div>
+          <div style="height:1px;background:var(--border);margin:1.1rem 0"></div>
+          <div class="fg c4">
             <div class="fld"><label>Restid totalt</label><input type="text" id="t-restid" readonly placeholder="Beräknas"></div>
             <div class="fld"><label>Körsträcka (km)</label><input type="number" id="t-km" min="0" value="0"></div>
             <div class="fld"><label>Fordon</label><select id="t-fordon"><option value="">— Välj —</option><option>Tjänstebil</option><option>Privatbil</option><option>Hyrbil</option><option>Kollektivt</option></select></div>
@@ -824,7 +835,7 @@ function renderTidlista(){
 function nyTidrapport(){
   curKem=[];curUtr=[];curMat=[];
   document.getElementById('tf-projnamn').textContent=projekt.find(p=>p.id===aktivtProj)?.namn||'';
-  ['t-start','t-slut','t-besk','t-komm','t-rstart','t-rslut','t-arb','t-restid'].forEach(i=>document.getElementById(i).value='');
+  ['t-start','t-slut','t-besk','t-komm','t-rstart','t-rslut','t-hstart','t-hslut','t-arb','t-restid','t-restid-dit','t-restid-hem'].forEach(i=>document.getElementById(i).value='');
   document.getElementById('t-datum').value=tdy();
   document.getElementById('t-rast').value='0';document.getElementById('t-km').value='0';
   document.getElementById('t-fordon').value='';document.getElementById('t-trakt').value='nej';
@@ -834,7 +845,14 @@ function nyTidrapport(){
 function tillbakaTillProjekt(){visaProjekt(aktivtProj);}
 
 function calcArb(){const v=diff('t-start','t-slut',parseInt(document.getElementById('t-rast').value)||0);document.getElementById('t-arb').value=v.txt;}
-function calcRes(){const v=diff('t-rstart','t-rslut',0);document.getElementById('t-restid').value=v.txt;}
+function calcRes(){
+  const dit=diff('t-rstart','t-rslut',0),hem=diff('t-hstart','t-hslut',0);
+  document.getElementById('t-restid-dit').value=dit.txt;
+  document.getElementById('t-restid-hem').value=hem.txt;
+  const tot=dit.h+hem.h;
+  document.getElementById('t-restid').value=tot?`${Math.floor(tot*60/60)}h ${Math.round((tot*60)%60)}min  (${tot.toFixed(2)} h)`:'';
+}
+function getRestidTot(){return +(diff('t-rstart','t-rslut',0).h+diff('t-hstart','t-hslut',0).h).toFixed(2);}
 function diff(a,b,rast){const s=document.getElementById(a).value,e=document.getElementById(b).value;if(!s||!e)return{h:0,txt:''};
   const[sh,sm]=s.split(':').map(Number),[eh,em]=e.split(':').map(Number);let m=(eh*60+em)-(sh*60+sm)-rast;if(m<0)m+=1440;
   return{h:+(m/60).toFixed(2),txt:`${Math.floor(m/60)}h ${m%60}min  (${(m/60).toFixed(2)} h)`};}
@@ -864,7 +882,8 @@ async function sparaTidrapport(){
   const r={projekt_id:aktivtProj,datum,
     start_tid:document.getElementById('t-start').value,slut_tid:document.getElementById('t-slut').value,
     rast_min:parseInt(document.getElementById('t-rast').value)||0,timmar:diff('t-start','t-slut',parseInt(document.getElementById('t-rast').value)||0).h,
-    resa_start:document.getElementById('t-rstart').value,resa_slut:document.getElementById('t-rslut').value,resetid:diff('t-rstart','t-rslut',0).h,
+    resa_start:document.getElementById('t-rstart').value,resa_slut:document.getElementById('t-rslut').value,
+    hemresa_start:document.getElementById('t-hstart').value,hemresa_slut:document.getElementById('t-hslut').value,resetid:getRestidTot(),
     km:parseFloat(document.getElementById('t-km').value)||0,fordon:document.getElementById('t-fordon').value,traktamente:document.getElementById('t-trakt').value,
     beskrivning:document.getElementById('t-besk').value.trim(),kommentar:document.getElementById('t-komm').value.trim(),
     kemikalier:curKem,utrustning:curUtr,material:curMat,
@@ -1025,7 +1044,7 @@ function visaRapport(id){
   <div><div class="l">Roll</div><div class="v">${esc(r.roll||'—')}</div></div><div><div class="l">Anst.nr</div><div class="v">${esc(r.ansnr||'—')}</div></div></div></div>
   <div class="sec"><h2>Tid</h2><table><tr><th>Start</th><th>Slut</th><th>Rast</th><th>Arbetstid</th></tr>
   <tr><td>${r.start_tid||'—'}</td><td>${r.slut_tid||'—'}</td><td>${r.rast_min||0} min</td><td><b>${r.timmar||0} h</b></td></tr></table>
-  ${r.resetid>0?`<div style="margin-top:.75rem;background:#f0fff7;border-radius:8px;padding:.6rem 1rem;font-size:13px">🚐 <b>Restid:</b> ${r.resa_start||''}–${r.resa_slut||''} = <b>${r.resetid} h</b></div>`:''}
+  ${r.resetid>0?`<div style="margin-top:.75rem;background:#f0fff7;border-radius:8px;padding:.6rem 1rem;font-size:13px">🚐 <b>Restid:</b>${r.resa_start?` dit ${r.resa_start}–${r.resa_slut||''}`:''}${r.hemresa_start?` · hem ${r.hemresa_start}–${r.hemresa_slut||''}`:''} = <b>${r.resetid} h totalt</b></div>`:''}
   ${r.beskrivning?`<p style="margin-top:1rem;font-size:13px;color:#444;line-height:1.6">${esc(r.beskrivning)}</p>`:''}</div>
   <div class="sec"><h2>Resor & Ersättning</h2><table><tr><th>Post</th><th>Detalj</th><th style="text-align:right">Belopp</th></tr>
   <tr><td>Milersättning</td><td>${r.km||0} km × ${s.mil} kr ${r.fordon?'('+esc(r.fordon)+')':''}</td><td style="text-align:right">${mil} kr</td></tr>
