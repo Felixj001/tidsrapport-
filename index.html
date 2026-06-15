@@ -484,7 +484,7 @@ textarea{resize:vertical;min-height:90px}
       <!-- ═══ TIDRAPPORT FORM ═══ -->
       <div id="page-tidform" class="page">
         <div class="back-link" id="tf-back" onclick="tillbakaTillProjekt()">← Tillbaka till projekt</div>
-        <div class="ph"><div><h1>Ny tidrapport</h1><p id="tf-projnamn">—</p></div></div>
+        <div class="ph"><div><h1 id="tf-title">Ny tidrapport</h1><p id="tf-projnamn">—</p></div></div>
 
         <div class="fg" style="margin-bottom:1.25rem;align-items:start">
           <div class="timer-card">
@@ -653,7 +653,7 @@ const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZ
 let sb=null, currentUser=null;
 let projekt=[], rapporter=[], risker=[];
 let aktivtProj=null, redigerarProj=null, projFilter='alla';
-let curKem=[], curUtr=[], curMat=[];
+let curKem=[], curUtr=[], curMat=[], redigerarRapport=null;
 
 let settings=JSON.parse(localStorage.getItem('rc_set')||JSON.stringify({namn:'',roll:'',ansnr:'',avd:'',mil:25,th:130,thel:290,tn:435}));
 
@@ -850,20 +850,49 @@ function renderTidlista(){
         <div class="row-s">⏱ ${r.timmar||0}h${r.resetid>0?' · 🚐 '+r.resetid+'h':''}${r.km>0?' · 🚗 '+r.km+'km':''}${(r.kemikalier||[]).length?' · 🧴 '+r.kemikalier.length:''}${(r.utrustning||[]).length?' · 🔧 '+r.utrustning.length:''}</div>
       </div>
       <div class="row-a"><button class="btn btn-gho btn-xs" onclick="visaRapport(${r.id})">Visa</button>
-      ${own?`<button class="btn btn-dan btn-xs" onclick="raderaRapport(${r.id})">✕</button>`:''}</div>
+      ${own?`<button class="btn btn-gho btn-xs" onclick="redigeraTidrapport(${r.id})">✏</button><button class="btn btn-dan btn-xs" onclick="raderaRapport(${r.id})">✕</button>`:''}</div>
     </div>`;
   }).join('');
 }
 
 // ════ TIDRAPPORT ════
 function nyTidrapport(){
+  redigerarRapport=null;
   curKem=[];curUtr=[];curMat=[];
+  document.getElementById('tf-title').textContent='Ny tidrapport';
+  document.getElementById('tf-save').innerHTML='💾 Spara tidrapport';
   document.getElementById('tf-projnamn').textContent=projekt.find(p=>p.id===aktivtProj)?.namn||'';
   ['t-start','t-slut','t-besk','t-komm','t-rstart','t-rslut','t-hstart','t-hslut','t-arb','t-restid','t-restid-dit','t-restid-hem'].forEach(i=>document.getElementById(i).value='');
   document.getElementById('t-datum').value=tdy();
   document.getElementById('t-rast').value='0';document.getElementById('t-km').value='0';
   document.getElementById('t-fordon').value='';document.getElementById('t-trakt').value='nej';
   renderKem();renderUtr();renderMat();resetTimer();
+  go('tidform');
+}
+function redigeraTidrapport(id){
+  const r=rapporter.find(x=>x.id===id);if(!r)return;
+  if(r.user_id!==currentUser.id){toast('Du kan bara redigera dina egna rapporter',1);return}
+  redigerarRapport=id;aktivtProj=r.projekt_id;
+  curKem=JSON.parse(JSON.stringify(r.kemikalier||[]));
+  curUtr=JSON.parse(JSON.stringify(r.utrustning||[]));
+  curMat=JSON.parse(JSON.stringify(r.material||[]));
+  document.getElementById('tf-title').textContent='Redigera tidrapport';
+  document.getElementById('tf-save').innerHTML='💾 Uppdatera tidrapport';
+  document.getElementById('tf-projnamn').textContent=projekt.find(p=>p.id===r.projekt_id)?.namn||'';
+  document.getElementById('t-datum').value=r.datum||tdy();
+  document.getElementById('t-start').value=r.start_tid||'';
+  document.getElementById('t-slut').value=r.slut_tid||'';
+  document.getElementById('t-rast').value=r.rast_min||0;
+  document.getElementById('t-rstart').value=r.resa_start||'';
+  document.getElementById('t-rslut').value=r.resa_slut||'';
+  document.getElementById('t-hstart').value=r.hemresa_start||'';
+  document.getElementById('t-hslut').value=r.hemresa_slut||'';
+  document.getElementById('t-km').value=r.km||0;
+  document.getElementById('t-fordon').value=r.fordon||'';
+  document.getElementById('t-trakt').value=r.traktamente||'nej';
+  document.getElementById('t-besk').value=r.beskrivning||'';
+  document.getElementById('t-komm').value=r.kommentar||'';
+  calcArb();calcRes();renderKem();renderUtr();renderMat();resetTimer();
   go('tidform');
 }
 function tillbakaTillProjekt(){visaProjekt(aktivtProj);}
@@ -912,11 +941,14 @@ async function sparaTidrapport(){
     beskrivning:document.getElementById('t-besk').value.trim(),kommentar:document.getElementById('t-komm').value.trim(),
     kemikalier:curKem,utrustning:curUtr,material:curMat,
     namn:settings.namn,roll:settings.roll,ansnr:settings.ansnr,user_id:currentUser.id};
-  const {error}=await sb.from('rapporter').insert(r);
+  let error;
+  if(redigerarRapport)({error}=await sb.from('rapporter').update(r).eq('id',redigerarRapport));
+  else ({error}=await sb.from('rapporter').insert(r));
   document.getElementById('tf-save').disabled=false;
-  document.getElementById('tf-save').innerHTML='💾 Spara tidrapport';
+  document.getElementById('tf-save').innerHTML=redigerarRapport?'💾 Uppdatera tidrapport':'💾 Spara tidrapport';
   if(error){toast('Fel: '+error.message,1);return}
-  toast('✓ Tidrapport sparad!');await fetchAll();visaProjekt(aktivtProj);
+  toast(redigerarRapport?'✓ Tidrapport uppdaterad!':'✓ Tidrapport sparad!');
+  redigerarRapport=null;await fetchAll();visaProjekt(aktivtProj);
 }
 
 async function raderaRapport(id){
@@ -1037,7 +1069,7 @@ function renderRapporter(){
     <span>⏱ ${r.timmar||0}h</span>${r.resetid>0?`<span>🚐 ${r.resetid}h</span>`:''}${r.km>0?`<span>🚗 ${r.km}km</span>`:''}
     ${(r.kemikalier||[]).length?`<span>🧴 ${r.kemikalier.length}</span>`:''}${(r.utrustning||[]).length?`<span>🔧 ${r.utrustning.length}</span>`:''}</div>
     ${r.beskrivning?`<div style="font-size:12.5px;color:var(--text-sec);margin-top:6px">${esc(r.beskrivning).substring(0,140)}</div>`:''}</div>
-    <div class="row-a"><button class="btn btn-gho btn-xs" onclick="visaRapport(${r.id})">Visa</button>${own?`<button class="btn btn-dan btn-xs" onclick="raderaRapport(${r.id})">✕</button>`:''}</div>
+    <div class="row-a"><button class="btn btn-gho btn-xs" onclick="visaRapport(${r.id})">Visa</button>${own?`<button class="btn btn-gho btn-xs" onclick="redigeraTidrapport(${r.id})">✏</button><button class="btn btn-dan btn-xs" onclick="raderaRapport(${r.id})">✕</button>`:''}</div>
     </div></div>`;}).join('');
 }
 
