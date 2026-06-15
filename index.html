@@ -848,8 +848,21 @@ function renderDetaljSumma(){
   // Material — summera antal & kostnad per namn+enhet
   const mat={};rs.forEach(r=>(r.material||[]).forEach(m=>{const key=m.namn+'|'+m.enhet;if(!mat[key])mat[key]={namn:m.namn,enhet:m.enhet,antal:0,kostnad:0};mat[key].antal+=(+m.antal||0);mat[key].kostnad+=(+m.antal||0)*(+m.pris||0);}));
 
+  // Per person — arbetstid & restid
+  const pers={};rs.forEach(r=>{const k=r.namn||'Okänd';if(!pers[k])pers[k]={namn:k,n:0,arb:0,res:0,km:0};
+    pers[k].n++;pers[k].arb+=(+r.timmar||0);pers[k].res+=(+r.resetid||0);pers[k].km+=(+r.km||0);});
+  const persArr=Object.values(pers);
+
   const kemArr=Object.values(kem),utrArr=Object.values(utr),matArr=Object.values(mat);
   let h='';
+  // Per person
+  h+=`<div class="card"><div class="ch"><div class="ch-ic">👥</div><div><div class="ch-t">Tid per person</div><div class="ch-s">Arbetstid och restid per anställd</div></div></div>`;
+  if(persArr.length){const tArb=persArr.reduce((a,p)=>a+p.arb,0),tRes=persArr.reduce((a,p)=>a+p.res,0),tKm=persArr.reduce((a,p)=>a+p.km,0),tN=persArr.reduce((a,p)=>a+p.n,0);
+    h+=`<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Anställd</th><th style="text-align:right">Rapporter</th><th style="text-align:right">Arbetstid</th><th style="text-align:right">Restid</th><th style="text-align:right">Km</th></tr></thead><tbody>`+
+    persArr.map(p=>`<tr><td>👤 <b>${esc(p.namn)}</b></td><td style="text-align:right">${p.n}</td><td style="text-align:right"><b class="mono" style="color:var(--green)">${(+p.arb.toFixed(2))}h</b></td><td style="text-align:right" class="mono">${(+p.res.toFixed(2))}h</td><td style="text-align:right">${p.km}</td></tr>`).join('')+
+    `</tbody><tfoot><tr><td>TOTALT</td><td style="text-align:right">${tN}</td><td style="text-align:right">${(+tArb.toFixed(2))}h</td><td style="text-align:right">${(+tRes.toFixed(2))}h</td><td style="text-align:right">${tKm}</td></tr></tfoot></table></div>`;}
+  else h+='<div style="font-size:13px;color:var(--text-mut)">Ingen tid rapporterad ännu</div>';
+  h+='</div>';
   // Kemikalier
   h+=`<div class="card"><div class="ch"><div class="ch-ic">🧴</div><div><div class="ch-t">Kemikalier på projektet</div><div class="ch-s">Total förbrukning</div></div></div>`;
   if(kemArr.length){h+=`<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Kemikalie / Produkt</th><th style="text-align:right">Total mängd</th></tr></thead><tbody>`+
