@@ -410,6 +410,7 @@ textarea{resize:vertical;min-height:90px}
               <div><div style="font-size:10px;color:var(--text-mut);text-transform:uppercase;letter-spacing:0.07em;font-weight:700">Period</div><div id="d-period" style="font-size:14px;font-weight:600;margin-top:4px"></div></div>
             </div>
           </div>
+          <div id="d-summa"></div>
         </div>
 
         <!-- TIDRAPPORTER -->
@@ -817,7 +818,7 @@ async function visaProjekt(id){
   document.getElementById('d-plats').textContent=p.plats||'—';
   document.getElementById('d-period').textContent=p.start_datum?`${p.start_datum}${p.slut_datum?' → '+p.slut_datum:''}`:'—';
   dtab('oversikt',document.querySelector('#page-detalj .tab'));
-  renderDetaljStats();renderTidlista();
+  renderDetaljStats();renderDetaljSumma();renderTidlista();
   await fetchRisker(id);renderFiler();
 }
 function dtab(name,el){
@@ -837,6 +838,39 @@ function renderDetaljStats(){
     ${stat('🚐',res.toFixed(1)+'h','Restid')}
     ${stat('🚗',km+' km','Körsträcka')}
     ${stat('🧴',kem,'Kemikalieposter')}`;
+}
+function renderDetaljSumma(){
+  const rs=rapporter.filter(r=>r.projekt_id===aktivtProj);
+  // Kemikalier — summera per namn+enhet
+  const kem={};rs.forEach(r=>(r.kemikalier||[]).forEach(k=>{const key=k.namn+'|'+k.enhet;if(!kem[key])kem[key]={namn:k.namn,enhet:k.enhet,mangd:0};kem[key].mangd+=(+k.mangd||0);}));
+  // Utrustning — summera timmar/antal per namn
+  const utr={};rs.forEach(r=>(r.utrustning||[]).forEach(u=>{const key=u.namn+'|'+(u.id||'');if(!utr[key])utr[key]={namn:u.namn,id:u.id,timmar:0,antal:0};utr[key].timmar+=(+u.timmar||0);utr[key].antal+=(+u.antal||0);}));
+  // Material — summera antal & kostnad per namn+enhet
+  const mat={};rs.forEach(r=>(r.material||[]).forEach(m=>{const key=m.namn+'|'+m.enhet;if(!mat[key])mat[key]={namn:m.namn,enhet:m.enhet,antal:0,kostnad:0};mat[key].antal+=(+m.antal||0);mat[key].kostnad+=(+m.antal||0)*(+m.pris||0);}));
+
+  const kemArr=Object.values(kem),utrArr=Object.values(utr),matArr=Object.values(mat);
+  let h='';
+  // Kemikalier
+  h+=`<div class="card"><div class="ch"><div class="ch-ic">🧴</div><div><div class="ch-t">Kemikalier på projektet</div><div class="ch-s">Total förbrukning</div></div></div>`;
+  if(kemArr.length){h+=`<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Kemikalie / Produkt</th><th style="text-align:right">Total mängd</th></tr></thead><tbody>`+
+    kemArr.map(k=>`<tr><td>🧴 ${esc(k.namn)}</td><td style="text-align:right"><b class="mono" style="color:var(--green)">${(+k.mangd.toFixed(2))} ${esc(k.enhet)}</b></td></tr>`).join('')+`</tbody></table></div>`;}
+  else h+='<div style="font-size:13px;color:var(--text-mut)">Inga kemikalier rapporterade ännu</div>';
+  h+='</div>';
+  // Utrustning
+  h+=`<div class="card"><div class="ch"><div class="ch-ic">🔧</div><div><div class="ch-t">Utrustning på projektet</div><div class="ch-s">Använd utrustning</div></div></div>`;
+  if(utrArr.length){h+=`<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Utrustning</th><th>ID / Reg.nr</th><th style="text-align:right">Timmar</th><th style="text-align:right">Antal</th></tr></thead><tbody>`+
+    utrArr.map(u=>`<tr><td>🔧 ${esc(u.namn)}</td><td>${esc(u.id||'—')}</td><td style="text-align:right"><b class="mono" style="color:var(--green)">${(+u.timmar.toFixed(2))}h</b></td><td style="text-align:right">${u.antal}</td></tr>`).join('')+`</tbody></table></div>`;}
+  else h+='<div style="font-size:13px;color:var(--text-mut)">Ingen utrustning rapporterad ännu</div>';
+  h+='</div>';
+  // Material
+  h+=`<div class="card"><div class="ch"><div class="ch-ic">📦</div><div><div class="ch-t">Material på projektet</div><div class="ch-s">Total förbrukning</div></div></div>`;
+  if(matArr.length){const tot=matArr.reduce((a,m)=>a+m.kostnad,0);
+    h+=`<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Artikel</th><th style="text-align:right">Antal</th><th style="text-align:right">Kostnad</th></tr></thead><tbody>`+
+    matArr.map(m=>`<tr><td>📦 ${esc(m.namn)}</td><td style="text-align:right">${(+m.antal.toFixed(2))} ${esc(m.enhet)}</td><td style="text-align:right">${m.kostnad.toFixed(2)} kr</td></tr>`).join('')+
+    `</tbody><tfoot><tr><td colspan="2">Totalt material</td><td style="text-align:right">${tot.toFixed(2)} kr</td></tr></tfoot></table></div>`;}
+  else h+='<div style="font-size:13px;color:var(--text-mut)">Inget material rapporterat ännu</div>';
+  h+='</div>';
+  document.getElementById('d-summa').innerHTML=h;
 }
 function renderTidlista(){
   const rs=rapporter.filter(r=>r.projekt_id===aktivtProj);
