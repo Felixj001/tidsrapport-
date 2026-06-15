@@ -468,6 +468,7 @@ textarea{resize:vertical;min-height:90px}
               <div style="margin-left:auto;display:flex;gap:0.5rem;flex-wrap:wrap">
                 <button class="btn btn-pri btn-sm" onclick="openRiskBib()">📋 Riskbibliotek</button>
                 <button class="btn btn-gho btn-sm" onclick="toggleRiskForm()">+ Egen risk</button>
+                <button class="btn btn-gho btn-sm" onclick="skapaRiskDok()">📄 Skapa dokument</button>
               </div>
             </div>
             <div id="risk-form" style="display:none" class="add-box">
@@ -1126,6 +1127,65 @@ async function laggTillValda(){
   document.getElementById('bib-add').textContent='Lägg till valda';
   if(error){toast('Fel: '+error.message,1);return}
   closeRiskBib();toast(`✓ ${valda.length} risker tillagda!`);await fetchRisker(aktivtProj);
+}
+function skapaRiskDok(){
+  const p=projekt.find(x=>x.id===aktivtProj);if(!p)return;
+  if(!risker.length){toast('Lägg till minst en risk först',1);return}
+  const s=settings;
+  // gruppera per kategori
+  const groups={};risker.forEach(r=>{(groups[r.kategori||'Övrigt']=groups[r.kategori||'Övrigt']||[]).push(r)});
+  let nr=0,rows='';
+  Object.keys(groups).forEach(kat=>{
+    rows+=`<tr class="grp"><td colspan="8">${esc(kat)}</td></tr>`;
+    groups[kat].forEach(r=>{nr++;
+      rows+=`<tr><td>${nr}</td><td>${esc(r.risk)}</td><td>${esc(r.atgard||'')}</td>
+      <td style="text-align:center">${r.konsekvens}</td><td style="text-align:center">${r.sannolikhet}</td>
+      <td style="text-align:center;background:${rColor(r.riskniva)};color:#04140b;font-weight:800">${r.riskniva}</td>
+      <td>${esc(r.ansvarig||'')}</td><td style="text-align:center">${r.status==='Hanterad'?'✔':'○'}</td></tr>`;});
+  });
+  // matris
+  let mx='';for(let sa=5;sa>=1;sa--){mx+=`<tr><td class="ax">${sa}</td>`;for(let k=1;k<=5;k++){const niva=sa*k;const cnt=risker.filter(r=>r.sannolikhet===sa&&r.konsekvens===k&&r.status==='Öppen').length;
+    mx+=`<td style="background:${rColor(niva)};text-align:center;font-weight:700;color:#04140b">${niva}${cnt?` (${cnt})`:''}</td>`;}mx+='</tr>';}
+  mx+='<tr><td class="ax"></td><td class="ax">1</td><td class="ax">2</td><td class="ax">3</td><td class="ax">4</td><td class="ax">5</td></tr>';
+  const w=window.open('','_blank','width=900,height=1000');
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Riskbedömning – ${esc(p.namn)}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Inter,sans-serif;color:#0a140d;padding:1.5rem;max-width:1000px;margin:0 auto;font-size:12px}
+  .hd{background:linear-gradient(135deg,#0a140d,#10301d);border-radius:14px;padding:1.5rem 2rem;color:#fff;margin-bottom:1.25rem;position:relative;overflow:hidden}
+  .hd::after{content:'RC';position:absolute;right:1.5rem;top:50%;transform:translateY(-50%);font-size:80px;font-weight:800;color:#00ff88;opacity:.12}
+  .hd h1{font-size:22px;font-weight:800}.hd .grn{color:#00ff88}.hd p{opacity:.85;font-size:13px;margin-top:3px}
+  .meta{display:grid;grid-template-columns:repeat(4,1fr);gap:.6rem;margin-top:1rem}.meta .l{font-size:9px;text-transform:uppercase;opacity:.6;font-weight:700}.meta .v{font-size:12px;font-weight:600;margin-top:2px}
+  h2{font-size:13px;font-weight:800;color:#00b368;text-transform:uppercase;letter-spacing:.05em;margin:1.5rem 0 .6rem}
+  table{width:100%;border-collapse:collapse;font-size:11px}
+  th{background:#10301d;color:#fff;padding:.5rem .55rem;text-align:left;font-size:10px;text-transform:uppercase;font-weight:700;border:1px solid #1d4030}
+  td{padding:.5rem .55rem;border:1px solid #dde3df;vertical-align:top}
+  tr.grp td{background:#eafbf1;font-weight:800;color:#00875a;text-transform:uppercase;font-size:10px;letter-spacing:.04em}
+  .mx{width:auto;margin-top:.5rem}.mx td{width:46px;height:40px;border:1px solid #fff}.mx .ax{background:#fff;color:#666;font-weight:700;text-align:center;width:auto}
+  .mxw{display:flex;gap:2rem;flex-wrap:wrap;align-items:flex-start}
+  .leg{font-size:11px;line-height:1.9}.leg span{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:middle;margin-right:7px}
+  .sign{display:grid;grid-template-columns:1fr 1fr;gap:2rem;margin-top:2.5rem}
+  .sign .line{border-top:1px solid #333;padding-top:5px;font-size:10px;color:#666}
+  .pb{background:#00b368;color:#fff;border:none;padding:.6rem 1.4rem;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;margin-bottom:1.25rem;font-family:Inter}
+  .ft{text-align:center;padding:1.5rem;font-size:10px;color:#999;margin-top:1rem}
+  @media print{.pb{display:none}body{padding:0}}</style></head><body>
+  <button class="pb" onclick="window.print()">🖨 Skriv ut / Spara som PDF</button>
+  <div class="hd"><h1>Risk<span class="grn">bedömning</span></h1><p>${esc(p.namn)}</p>
+  <div class="meta">
+    <div><div class="l">Analysobjekt</div><div class="v">${esc(p.namn)}</div></div>
+    <div><div class="l">Kund / Plats</div><div class="v">${esc(p.kund||'—')}${p.plats?', '+esc(p.plats):''}</div></div>
+    <div><div class="l">Period</div><div class="v">${esc(p.vecka||p.start_datum||'—')}</div></div>
+    <div><div class="l">Upprättad av</div><div class="v">${esc(s.namn||'ReconConcept')}</div></div>
+  </div></div>
+  <h2>Identifierade risker (${risker.length})</h2>
+  <table><thead><tr><th style="width:28px">Nr</th><th>Risk / Fara</th><th>Åtgärd / Styrning</th><th style="width:32px">K</th><th style="width:32px">S</th><th style="width:60px">Riskvärde</th><th>Ansvarig</th><th style="width:50px">Status</th></tr></thead><tbody>${rows}</tbody></table>
+  <h2>Riskvärderingsmatris</h2>
+  <div class="mxw">
+    <div><table class="mx">${mx}</table><div style="font-size:10px;color:#666;margin-top:5px;text-align:center">↑ Sannolikhet &nbsp;·&nbsp; Konsekvens →</div></div>
+    <div class="leg"><div><span style="background:#00ff88"></span>Låg (1–4)</div><div><span style="background:#ffe14d"></span>Medel (5–9)</div><div><span style="background:#ff9f1c"></span>Hög (10–14)</div><div><span style="background:#ff4d5e"></span>Kritisk (15–25)</div></div>
+  </div>
+  <div class="sign"><div class="line">Upprättad av / datum</div><div class="line">Godkänd av / datum</div></div>
+  <div class="ft">Genererad ${new Date().toLocaleDateString('sv-SE')} · ReconConcept</div>
+  </body></html>`);w.document.close();
 }
 function toggleRiskForm(){const f=document.getElementById('risk-form');f.style.display=f.style.display==='none'?'block':'none';}
 async function sparaRisk(){
