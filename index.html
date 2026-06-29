@@ -537,29 +537,43 @@ textarea{resize:vertical;min-height:90px}
         </div>
 
         <div class="card">
-          <div class="ch"><div class="ch-ic">🚐</div><div><div class="ch-t">Restid & Körsträcka</div><div class="ch-s">Dit- och hemresa</div></div></div>
-          <div class="fld" style="margin-bottom:1rem"><label>Resa från</label>
-            <div class="chips" id="t-resafran-group">
-              <button class="chip on" data-v="hem" onclick="setResaFran('hem',this)">🏠 Hemifrån</button>
-              <button class="chip" data-v="verkstad" onclick="setResaFran('verkstad',this)">🏭 Från verkstad</button>
-              <button class="chip" data-v="annat" onclick="setResaFran('annat',this)">📍 Annat</button>
-            </div>
-          </div>
-          <div style="font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:0.6rem">↗ Resa dit</div>
+          <div class="ch"><div class="ch-ic">🚐</div><div><div class="ch-t">Restid & Körsträcka</div><div class="ch-s">Hela resvägen – fyra etapper</div></div></div>
+
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:0.6rem"><span style="font-size:11px;font-weight:700;color:var(--text-sec);text-transform:uppercase;letter-spacing:0.07em">1. 🏠 Hem → 🏭 Verkstad</span><span class="badge b-gray">Ej fakturerbar</span></div>
           <div class="fg c3">
-            <div class="fld"><label>Start</label><input type="time" id="t-rstart" oninput="calcRes()"></div>
-            <div class="fld"><label>Slut</label><input type="time" id="t-rslut" oninput="calcRes()"></div>
-            <div class="fld"><label>Restid dit</label><input type="text" id="t-restid-dit" readonly placeholder="Beräknas"></div>
+            <div class="fld"><label>Start</label><input type="time" id="t-l1s" oninput="calcRes()"></div>
+            <div class="fld"><label>Slut</label><input type="time" id="t-l1e" oninput="calcRes()"></div>
+            <div class="fld"><label>Restid</label><input type="text" id="t-l1t" readonly placeholder="Beräknas"></div>
           </div>
-          <div style="font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:0.07em;margin:1rem 0 0.6rem">↙ Resa hem</div>
+
+          <div style="display:flex;align-items:center;gap:8px;margin:1rem 0 0.6rem"><span style="font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:0.07em">2. 🏭 Verkstad → 🏗 Kund</span><span class="badge b-green">Fakturerbar</span></div>
           <div class="fg c3">
-            <div class="fld"><label>Start</label><input type="time" id="t-hstart" oninput="calcRes()"></div>
-            <div class="fld"><label>Slut</label><input type="time" id="t-hslut" oninput="calcRes()"></div>
-            <div class="fld"><label>Restid hem</label><input type="text" id="t-restid-hem" readonly placeholder="Beräknas"></div>
+            <div class="fld"><label>Start</label><input type="time" id="t-l2s" oninput="calcRes()"></div>
+            <div class="fld"><label>Slut</label><input type="time" id="t-l2e" oninput="calcRes()"></div>
+            <div class="fld"><label>Restid</label><input type="text" id="t-l2t" readonly placeholder="Beräknas"></div>
           </div>
-          <div style="height:1px;background:var(--border);margin:1.1rem 0"></div>
-          <div class="fg c4">
+
+          <div style="display:flex;align-items:center;gap:8px;margin:1rem 0 0.6rem"><span style="font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:0.07em">3. 🏗 Kund → 🏭 Verkstad</span><span class="badge b-green">Fakturerbar</span></div>
+          <div class="fg c3">
+            <div class="fld"><label>Start</label><input type="time" id="t-l3s" oninput="calcRes()"></div>
+            <div class="fld"><label>Slut</label><input type="time" id="t-l3e" oninput="calcRes()"></div>
+            <div class="fld"><label>Restid</label><input type="text" id="t-l3t" readonly placeholder="Beräknas"></div>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:8px;margin:1rem 0 0.6rem"><span style="font-size:11px;font-weight:700;color:var(--text-sec);text-transform:uppercase;letter-spacing:0.07em">4. 🏭 Verkstad → 🏠 Hem</span><span class="badge b-gray">Ej fakturerbar</span></div>
+          <div class="fg c3">
+            <div class="fld"><label>Start</label><input type="time" id="t-l4s" oninput="calcRes()"></div>
+            <div class="fld"><label>Slut</label><input type="time" id="t-l4e" oninput="calcRes()"></div>
+            <div class="fld"><label>Restid</label><input type="text" id="t-l4t" readonly placeholder="Beräknas"></div>
+          </div>
+
+          <div style="height:1px;background:var(--border);margin:1.2rem 0"></div>
+          <div class="fg c3">
             <div class="fld"><label>Restid totalt</label><input type="text" id="t-restid" readonly placeholder="Beräknas"></div>
+            <div class="fld"><label>💰 Fakturerbar restid</label><input type="text" id="t-restid-fakt" readonly placeholder="Beräknas"></div>
+            <div class="fld"><label>🏠 Ej fakturerbar restid</label><input type="text" id="t-restid-egen" readonly placeholder="Beräknas"></div>
+          </div>
+          <div class="fg c3" style="margin-top:1rem">
             <div class="fld"><label>Körsträcka (km)</label><input type="number" id="t-km" min="0" value="0"></div>
             <div class="fld"><label>Fordon</label><select id="t-fordon"><option value="">— Välj —</option><option>Tjänstebil</option><option>Privatbil</option><option>Hyrbil</option><option>Kollektivt</option></select></div>
             <div class="fld"><label>Traktamente</label><select id="t-trakt"><option value="nej">Inget</option><option value="halvdag">Halvdag</option><option value="heldag">Heldag</option><option value="natt">Övernattning</option></select></div>
@@ -704,9 +718,8 @@ let sb=null, currentUser=null;
 let projekt=[], rapporter=[], risker=[];
 let aktivtProj=null, redigerarProj=null, projFilter='alla';
 let curKem=[], curUtr=[], curMat=[], redigerarRapport=null;
-let curDeb='kund', curResaFran='hem';
+let curDeb='kund';
 function setDeb(v,btn){curDeb=v;btn.closest('.chips').querySelectorAll('.chip').forEach(b=>b.classList.remove('on'));btn.classList.add('on');}
-function setResaFran(v,btn){curResaFran=v;btn.closest('.chips').querySelectorAll('.chip').forEach(b=>b.classList.remove('on'));btn.classList.add('on');}
 function setChip(groupId,val){const g=document.getElementById(groupId);if(!g)return;g.querySelectorAll('.chip').forEach(b=>b.classList.toggle('on',b.dataset.v===val));}
 
 let settings=JSON.parse(localStorage.getItem('rc_set')||JSON.stringify({namn:'',roll:'',ansnr:'',avd:'',mil:25,th:130,thel:290,tn:435}));
@@ -885,9 +898,9 @@ function renderDetaljStats(){
   const res=rs.reduce((a,r)=>a+(r.resetid||0),0);
   const km=rs.reduce((a,r)=>a+(r.km||0),0);
   let fakt=0,egen=0;
-  rs.forEach(r=>{const ar=+r.timmar||0,rt=+r.resetid||0;
+  rs.forEach(r=>{const ar=+r.timmar||0;
     if((r.debitering||'kund')==='egen')egen+=ar;else fakt+=ar;
-    if((r.resa_fran||'hem')==='hem')egen+=rt;else fakt+=rt;});
+    fakt+=resFakt(r);egen+=resEgen(r);});
   document.getElementById('d-stats').innerHTML=`
     ${stat('📋',rs.length,'Tidrapporter')}
     ${stat('⏱',tim.toFixed(1)+'h','Arbetstid')}
@@ -910,7 +923,7 @@ function renderDetaljSumma(){
     const ar=+r.timmar||0,rt=+r.resetid||0;
     pers[k].n++;pers[k].arb+=ar;pers[k].res+=rt;pers[k].km+=(+r.km||0);
     if((r.debitering||'kund')==='egen')pers[k].egen+=ar;else pers[k].fakt+=ar;
-    if((r.resa_fran||'hem')==='hem')pers[k].egen+=rt;else pers[k].fakt+=rt;});
+    pers[k].fakt+=resFakt(r);pers[k].egen+=resEgen(r);});
   const persArr=Object.values(pers);
 
   const kemArr=Object.values(kem),utrArr=Object.values(utr),matArr=Object.values(mat);
@@ -969,12 +982,12 @@ function nyTidrapport(){
   document.getElementById('tf-title').textContent='Ny tidrapport';
   document.getElementById('tf-save').innerHTML='💾 Spara tidrapport';
   document.getElementById('tf-projnamn').textContent=projekt.find(p=>p.id===aktivtProj)?.namn||'';
-  ['t-start','t-slut','t-besk','t-komm','t-rstart','t-rslut','t-hstart','t-hslut','t-arb','t-restid','t-restid-dit','t-restid-hem'].forEach(i=>document.getElementById(i).value='');
+  ['t-start','t-slut','t-besk','t-komm','t-arb','t-restid','t-restid-fakt','t-restid-egen',
+   't-l1s','t-l1e','t-l1t','t-l2s','t-l2e','t-l2t','t-l3s','t-l3e','t-l3t','t-l4s','t-l4e','t-l4t'].forEach(i=>document.getElementById(i).value='');
   document.getElementById('t-datum').value=tdy();
   document.getElementById('t-rast').value='0';document.getElementById('t-km').value='0';
   document.getElementById('t-fordon').value='';document.getElementById('t-trakt').value='nej';
   curDeb='kund';setChip('t-deb-group','kund');
-  curResaFran='hem';setChip('t-resafran-group','hem');
   renderKem();renderUtr();renderMat();resetTimer();
   go('tidform');
 }
@@ -992,31 +1005,41 @@ function redigeraTidrapport(id){
   document.getElementById('t-start').value=r.start_tid||'';
   document.getElementById('t-slut').value=r.slut_tid||'';
   document.getElementById('t-rast').value=r.rast_min||0;
-  document.getElementById('t-rstart').value=r.resa_start||'';
-  document.getElementById('t-rslut').value=r.resa_slut||'';
-  document.getElementById('t-hstart').value=r.hemresa_start||'';
-  document.getElementById('t-hslut').value=r.hemresa_slut||'';
+  const rr=r.resor||{};
+  document.getElementById('t-l1s').value=rr.l1?.s||r.resa_start||'';document.getElementById('t-l1e').value=rr.l1?.e||r.resa_slut||'';
+  document.getElementById('t-l2s').value=rr.l2?.s||'';document.getElementById('t-l2e').value=rr.l2?.e||'';
+  document.getElementById('t-l3s').value=rr.l3?.s||'';document.getElementById('t-l3e').value=rr.l3?.e||'';
+  document.getElementById('t-l4s').value=rr.l4?.s||r.hemresa_start||'';document.getElementById('t-l4e').value=rr.l4?.e||r.hemresa_slut||'';
   document.getElementById('t-km').value=r.km||0;
   document.getElementById('t-fordon').value=r.fordon||'';
   document.getElementById('t-trakt').value=r.traktamente||'nej';
   document.getElementById('t-besk').value=r.beskrivning||'';
   document.getElementById('t-komm').value=r.kommentar||'';
   curDeb=r.debitering||'kund';setChip('t-deb-group',curDeb);
-  curResaFran=r.resa_fran||'hem';setChip('t-resafran-group',curResaFran);
   calcArb();calcRes();renderKem();renderUtr();renderMat();resetTimer();
   go('tidform');
 }
 function tillbakaTillProjekt(){visaProjekt(aktivtProj);}
 
 function calcArb(){const v=diff('t-start','t-slut',parseInt(document.getElementById('t-rast').value)||0);document.getElementById('t-arb').value=v.txt;}
+function fmtH(h){return h?`${Math.floor(h)}h ${Math.round((h*60)%60)}min  (${h.toFixed(2)} h)`:'';}
 function calcRes(){
-  const dit=diff('t-rstart','t-rslut',0),hem=diff('t-hstart','t-hslut',0);
-  document.getElementById('t-restid-dit').value=dit.txt;
-  document.getElementById('t-restid-hem').value=hem.txt;
-  const tot=dit.h+hem.h;
-  document.getElementById('t-restid').value=tot?`${Math.floor(tot*60/60)}h ${Math.round((tot*60)%60)}min  (${tot.toFixed(2)} h)`:'';
+  const l1=diff('t-l1s','t-l1e',0),l2=diff('t-l2s','t-l2e',0),l3=diff('t-l3s','t-l3e',0),l4=diff('t-l4s','t-l4e',0);
+  document.getElementById('t-l1t').value=l1.txt;document.getElementById('t-l2t').value=l2.txt;
+  document.getElementById('t-l3t').value=l3.txt;document.getElementById('t-l4t').value=l4.txt;
+  const fakt=l2.h+l3.h, egen=l1.h+l4.h, tot=fakt+egen;
+  document.getElementById('t-restid').value=fmtH(tot);
+  document.getElementById('t-restid-fakt').value=fmtH(fakt);
+  document.getElementById('t-restid-egen').value=fmtH(egen);
 }
-function getRestidTot(){return +(diff('t-rstart','t-rslut',0).h+diff('t-hstart','t-hslut',0).h).toFixed(2);}
+function getResor(){return{
+  l1:diff('t-l1s','t-l1e',0).h,l2:diff('t-l2s','t-l2e',0).h,l3:diff('t-l3s','t-l3e',0).h,l4:diff('t-l4s','t-l4e',0).h};}
+function getRestidTot(){const r=getResor();return +(r.l1+r.l2+r.l3+r.l4).toFixed(2);}
+function getRestidFakt(){const r=getResor();return +(r.l2+r.l3).toFixed(2);}
+function getRestidEgen(){const r=getResor();return +(r.l1+r.l4).toFixed(2);}
+// Hjälp: fakturerbar/ej fakturerbar restid per rapport (med fallback för äldre rapporter)
+function resFakt(r){return r.resetid_fakt!=null?+r.resetid_fakt:((r.resa_fran||'hem')==='hem'?0:(+r.resetid||0));}
+function resEgen(r){return r.resetid_egen!=null?+r.resetid_egen:((r.resa_fran||'hem')==='hem'?(+r.resetid||0):0);}
 function diff(a,b,rast){const s=document.getElementById(a).value,e=document.getElementById(b).value;if(!s||!e)return{h:0,txt:''};
   const[sh,sm]=s.split(':').map(Number),[eh,em]=e.split(':').map(Number);let m=(eh*60+em)-(sh*60+sm)-rast;if(m<0)m+=1440;
   return{h:+(m/60).toFixed(2),txt:`${Math.floor(m/60)}h ${m%60}min  (${(m/60).toFixed(2)} h)`};}
@@ -1046,12 +1069,15 @@ async function sparaTidrapport(){
   const r={projekt_id:aktivtProj,datum,
     start_tid:document.getElementById('t-start').value,slut_tid:document.getElementById('t-slut').value,
     rast_min:parseInt(document.getElementById('t-rast').value)||0,timmar:diff('t-start','t-slut',parseInt(document.getElementById('t-rast').value)||0).h,
-    resa_start:document.getElementById('t-rstart').value,resa_slut:document.getElementById('t-rslut').value,
-    hemresa_start:document.getElementById('t-hstart').value,hemresa_slut:document.getElementById('t-hslut').value,resetid:getRestidTot(),
+    resor:{l1:{s:document.getElementById('t-l1s').value,e:document.getElementById('t-l1e').value},
+           l2:{s:document.getElementById('t-l2s').value,e:document.getElementById('t-l2e').value},
+           l3:{s:document.getElementById('t-l3s').value,e:document.getElementById('t-l3e').value},
+           l4:{s:document.getElementById('t-l4s').value,e:document.getElementById('t-l4e').value}},
+    resetid:getRestidTot(),resetid_fakt:getRestidFakt(),resetid_egen:getRestidEgen(),
     km:parseFloat(document.getElementById('t-km').value)||0,fordon:document.getElementById('t-fordon').value,traktamente:document.getElementById('t-trakt').value,
     beskrivning:document.getElementById('t-besk').value.trim(),kommentar:document.getElementById('t-komm').value.trim(),
     kemikalier:curKem,utrustning:curUtr,material:curMat,
-    debitering:curDeb,resa_fran:curResaFran,
+    debitering:curDeb,
     namn:settings.namn,roll:settings.roll,ansnr:settings.ansnr,user_id:currentUser.id};
   let error;
   if(redigerarRapport)({error}=await sb.from('rapporter').update(r).eq('id',redigerarRapport));
@@ -1332,7 +1358,8 @@ function visaRapport(id){
   <div class="sec"><h2>Tid</h2><table><tr><th>Start</th><th>Slut</th><th>Rast</th><th>Arbetstid</th></tr>
   <tr><td>${r.start_tid||'—'}</td><td>${r.slut_tid||'—'}</td><td>${r.rast_min||0} min</td><td><b>${r.timmar||0} h</b></td></tr></table>
   <div style="margin-top:.75rem;font-size:13px">${(r.debitering||'kund')==='egen'?'🏠 <b>Egen tid</b> (ej fakturerbar)':'💰 <b>Fakturerbar tid</b> (kund)'}</div>
-  ${r.resetid>0?`<div style="margin-top:.5rem;background:#f0fff7;border-radius:8px;padding:.6rem 1rem;font-size:13px">🚐 <b>Restid${r.resa_fran?' ('+({hem:'hemifrån',verkstad:'från verkstad',annat:'annat'}[r.resa_fran])+')':''}:</b>${r.resa_start?` dit ${r.resa_start}–${r.resa_slut||''}`:''}${r.hemresa_start?` · hem ${r.hemresa_start}–${r.hemresa_slut||''}`:''} = <b>${r.resetid} h totalt</b></div>`:''}
+  ${r.resetid>0?(()=>{const rr=r.resor||{};const legs=[['Hem→Verkstad',rr.l1],['Verkstad→Kund',rr.l2],['Kund→Verkstad',rr.l3],['Verkstad→Hem',rr.l4]].filter(l=>l[1]&&l[1].s&&l[1].e);
+    return `<div style="margin-top:.5rem;background:#f0fff7;border-radius:8px;padding:.6rem 1rem;font-size:12px">🚐 <b>Restid:</b> ${legs.length?legs.map(l=>`${l[0]} ${l[1].s}–${l[1].e}`).join(' · '):(r.resa_start?`dit ${r.resa_start}–${r.resa_slut||''}`:'')} <br><b>Totalt ${r.resetid} h</b> · 💰 fakturerbar ${resFakt(r)} h · 🏠 ej fakt. ${resEgen(r)} h</div>`;})():''}
   ${r.beskrivning?`<p style="margin-top:1rem;font-size:13px;color:#444;line-height:1.6">${esc(r.beskrivning)}</p>`:''}</div>
   <div class="sec"><h2>Resor & Ersättning</h2><table><tr><th>Post</th><th>Detalj</th><th style="text-align:right">Belopp</th></tr>
   <tr><td>Milersättning</td><td>${r.km||0} km × ${s.mil} kr ${r.fordon?'('+esc(r.fordon)+')':''}</td><td style="text-align:right">${mil} kr</td></tr>
@@ -1355,12 +1382,12 @@ function renderStat(){
   const fr=document.getElementById('s-fran').value,ti=document.getElementById('s-till').value,s=settings;
   const list=rapporter.filter(r=>{if(fr&&r.datum<fr)return false;if(ti&&r.datum>ti)return false;return true;});
   const tim=list.reduce((a,r)=>a+(r.timmar||0),0),res=list.reduce((a,r)=>a+(r.resetid||0),0),km=list.reduce((a,r)=>a+(r.km||0),0);
-  let fakt=0,egen=0;list.forEach(r=>{const ar=+r.timmar||0,rt=+r.resetid||0;
+  let fakt=0,egen=0;list.forEach(r=>{const ar=+r.timmar||0;
     if((r.debitering||'kund')==='egen')egen+=ar;else fakt+=ar;
-    if((r.resa_fran||'hem')==='hem')egen+=rt;else fakt+=rt;});
+    fakt+=resFakt(r);egen+=resEgen(r);});
   let trakt=0;list.forEach(r=>{if(r.traktamente==='halvdag')trakt+=s.th;else if(r.traktamente==='heldag')trakt+=s.thel;else if(r.traktamente==='natt')trakt+=s.tn;});
   document.getElementById('stat-cards').innerHTML=`${stat('📋',list.length,'Rapporter')}${stat('💰',fakt.toFixed(1)+'h','Fakturerbart')}${stat('🏠',egen.toFixed(1)+'h','Ej fakturerbart')}${stat('🚐',res.toFixed(1)+'h','Restid')}${stat('🚗',km+'km','Körsträcka')}${stat('💵',(km*s.mil+trakt).toFixed(0)+'kr','Ersättning')}`;
-  const pp={};list.forEach(r=>{const k=r.namn||'Okänd';if(!pp[k])pp[k]={namn:k,n:0,tim:0,fakt:0,egen:0,res:0,km:0};const ar=+r.timmar||0,rt=+r.resetid||0;pp[k].n++;pp[k].tim+=ar;pp[k].res+=rt;pp[k].km+=(r.km||0);if((r.debitering||'kund')==='egen')pp[k].egen+=ar;else pp[k].fakt+=ar;if((r.resa_fran||'hem')==='hem')pp[k].egen+=rt;else pp[k].fakt+=rt;});
+  const pp={};list.forEach(r=>{const k=r.namn||'Okänd';if(!pp[k])pp[k]={namn:k,n:0,tim:0,fakt:0,egen:0,res:0,km:0};const ar=+r.timmar||0,rt=+r.resetid||0;pp[k].n++;pp[k].tim+=ar;pp[k].res+=rt;pp[k].km+=(r.km||0);if((r.debitering||'kund')==='egen')pp[k].egen+=ar;else pp[k].fakt+=ar;pp[k].fakt+=resFakt(r);pp[k].egen+=resEgen(r);});
   if(!Object.keys(pp).length){document.getElementById('stat-tbl').innerHTML='<div class="empty"><div class="ei">📊</div>Inga data</div>';return}
   document.getElementById('stat-tbl').innerHTML=`<table class="tbl"><thead><tr><th>Anställd</th><th>Rapp.</th><th>💰 Fakt.</th><th>🏠 Egen</th><th>Arbetstid</th><th>Restid</th><th>Km</th></tr></thead>
   <tbody>${Object.values(pp).map(p=>`<tr><td><b>${esc(p.namn)}</b></td><td>${p.n}</td><td><b style="color:var(--green)">${p.fakt.toFixed(1)}h</b></td><td style="color:var(--text-sec)">${p.egen.toFixed(1)}h</td><td>${p.tim.toFixed(1)}h</td><td>${p.res.toFixed(1)}h</td><td>${p.km}</td></tr>`).join('')}</tbody>
@@ -1369,10 +1396,10 @@ function renderStat(){
 
 // ════ CSV ════
 function exportCSV(){
-  const rows=[['Datum','Projekt','Namn','Roll','Debitering','Start','Slut','Rast','Arbetstid','Resa från','Restid','Km','Fordon','Traktamente','Kemikalier','Utrustning','Beskrivning']];
+  const rows=[['Datum','Projekt','Namn','Roll','Debitering','Start','Slut','Rast','Arbetstid','Restid tot','Restid fakt','Restid egen','Km','Fordon','Traktamente','Kemikalier','Utrustning','Beskrivning']];
   rapporter.forEach(r=>{const pn=projekt.find(p=>p.id===r.projekt_id)?.namn||'';
     rows.push([r.datum,pn,r.namn,r.roll,(r.debitering||'kund')==='egen'?'Egen (ej fakt)':'Fakturerbar',r.start_tid,r.slut_tid,r.rast_min,r.timmar,
-    {hem:'Hemifrån',verkstad:'Verkstad',annat:'Annat'}[r.resa_fran]||'',r.resetid,r.km,r.fordon,r.traktamente,
+    r.resetid,resFakt(r),resEgen(r),r.km,r.fordon,r.traktamente,
     (r.kemikalier||[]).map(k=>`${k.namn} ${k.mangd}${k.enhet}`).join(' | '),(r.utrustning||[]).map(u=>u.namn).join(' | '),r.beskrivning]);});
   const csv=rows.map(r=>r.map(c=>`"${String(c||'').replace(/"/g,'""')}"`).join(';')).join('\n');
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['﻿'+csv],{type:'text/csv'}));a.download=`recondconcept_${tdy()}.csv`;a.click();
