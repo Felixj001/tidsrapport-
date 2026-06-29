@@ -884,14 +884,16 @@ function renderDetaljStats(){
   const tim=rs.reduce((a,r)=>a+(r.timmar||0),0);
   const res=rs.reduce((a,r)=>a+(r.resetid||0),0);
   const km=rs.reduce((a,r)=>a+(r.km||0),0);
-  const fakt=rs.filter(r=>(r.debitering||'kund')!=='egen').reduce((a,r)=>a+(r.timmar||0),0);
-  const egen=rs.filter(r=>(r.debitering||'kund')==='egen').reduce((a,r)=>a+(r.timmar||0),0);
+  let fakt=0,egen=0;
+  rs.forEach(r=>{const ar=+r.timmar||0,rt=+r.resetid||0;
+    if((r.debitering||'kund')==='egen')egen+=ar;else fakt+=ar;
+    if((r.resa_fran||'hem')==='hem')egen+=rt;else fakt+=rt;});
   document.getElementById('d-stats').innerHTML=`
     ${stat('📋',rs.length,'Tidrapporter')}
-    ${stat('⏱',tim.toFixed(1)+'h','Arbetstid totalt')}
-    ${stat('💰',fakt.toFixed(1)+'h','Fakturerbar tid')}
-    ${stat('🏠',egen.toFixed(1)+'h','Egen tid')}
+    ${stat('⏱',tim.toFixed(1)+'h','Arbetstid')}
     ${stat('🚐',res.toFixed(1)+'h','Restid')}
+    ${stat('💰',fakt.toFixed(1)+'h','Fakturerbart')}
+    ${stat('🏠',egen.toFixed(1)+'h','Ej fakturerbart')}
     ${stat('🚗',km+' km','Körsträcka')}`;
 }
 function renderDetaljSumma(){
@@ -905,8 +907,10 @@ function renderDetaljSumma(){
 
   // Per person — arbetstid & restid
   const pers={};rs.forEach(r=>{const k=r.namn||'Okänd';if(!pers[k])pers[k]={namn:k,n:0,arb:0,fakt:0,egen:0,res:0,km:0};
-    pers[k].n++;pers[k].arb+=(+r.timmar||0);pers[k].res+=(+r.resetid||0);pers[k].km+=(+r.km||0);
-    if((r.debitering||'kund')==='egen')pers[k].egen+=(+r.timmar||0);else pers[k].fakt+=(+r.timmar||0);});
+    const ar=+r.timmar||0,rt=+r.resetid||0;
+    pers[k].n++;pers[k].arb+=ar;pers[k].res+=rt;pers[k].km+=(+r.km||0);
+    if((r.debitering||'kund')==='egen')pers[k].egen+=ar;else pers[k].fakt+=ar;
+    if((r.resa_fran||'hem')==='hem')pers[k].egen+=rt;else pers[k].fakt+=rt;});
   const persArr=Object.values(pers);
 
   const kemArr=Object.values(kem),utrArr=Object.values(utr),matArr=Object.values(mat);
@@ -1351,11 +1355,12 @@ function renderStat(){
   const fr=document.getElementById('s-fran').value,ti=document.getElementById('s-till').value,s=settings;
   const list=rapporter.filter(r=>{if(fr&&r.datum<fr)return false;if(ti&&r.datum>ti)return false;return true;});
   const tim=list.reduce((a,r)=>a+(r.timmar||0),0),res=list.reduce((a,r)=>a+(r.resetid||0),0),km=list.reduce((a,r)=>a+(r.km||0),0);
-  const fakt=list.filter(r=>(r.debitering||'kund')!=='egen').reduce((a,r)=>a+(r.timmar||0),0);
-  const egen=list.filter(r=>(r.debitering||'kund')==='egen').reduce((a,r)=>a+(r.timmar||0),0);
+  let fakt=0,egen=0;list.forEach(r=>{const ar=+r.timmar||0,rt=+r.resetid||0;
+    if((r.debitering||'kund')==='egen')egen+=ar;else fakt+=ar;
+    if((r.resa_fran||'hem')==='hem')egen+=rt;else fakt+=rt;});
   let trakt=0;list.forEach(r=>{if(r.traktamente==='halvdag')trakt+=s.th;else if(r.traktamente==='heldag')trakt+=s.thel;else if(r.traktamente==='natt')trakt+=s.tn;});
-  document.getElementById('stat-cards').innerHTML=`${stat('📋',list.length,'Rapporter')}${stat('💰',fakt.toFixed(1)+'h','Fakturerbar tid')}${stat('🏠',egen.toFixed(1)+'h','Egen tid')}${stat('🚐',res.toFixed(1)+'h','Restid')}${stat('🚗',km+'km','Körsträcka')}${stat('💵',(km*s.mil+trakt).toFixed(0)+'kr','Ersättning')}`;
-  const pp={};list.forEach(r=>{const k=r.namn||'Okänd';if(!pp[k])pp[k]={namn:k,n:0,tim:0,fakt:0,egen:0,res:0,km:0};pp[k].n++;pp[k].tim+=(r.timmar||0);pp[k].res+=(r.resetid||0);pp[k].km+=(r.km||0);if((r.debitering||'kund')==='egen')pp[k].egen+=(r.timmar||0);else pp[k].fakt+=(r.timmar||0);});
+  document.getElementById('stat-cards').innerHTML=`${stat('📋',list.length,'Rapporter')}${stat('💰',fakt.toFixed(1)+'h','Fakturerbart')}${stat('🏠',egen.toFixed(1)+'h','Ej fakturerbart')}${stat('🚐',res.toFixed(1)+'h','Restid')}${stat('🚗',km+'km','Körsträcka')}${stat('💵',(km*s.mil+trakt).toFixed(0)+'kr','Ersättning')}`;
+  const pp={};list.forEach(r=>{const k=r.namn||'Okänd';if(!pp[k])pp[k]={namn:k,n:0,tim:0,fakt:0,egen:0,res:0,km:0};const ar=+r.timmar||0,rt=+r.resetid||0;pp[k].n++;pp[k].tim+=ar;pp[k].res+=rt;pp[k].km+=(r.km||0);if((r.debitering||'kund')==='egen')pp[k].egen+=ar;else pp[k].fakt+=ar;if((r.resa_fran||'hem')==='hem')pp[k].egen+=rt;else pp[k].fakt+=rt;});
   if(!Object.keys(pp).length){document.getElementById('stat-tbl').innerHTML='<div class="empty"><div class="ei">📊</div>Inga data</div>';return}
   document.getElementById('stat-tbl').innerHTML=`<table class="tbl"><thead><tr><th>Anställd</th><th>Rapp.</th><th>💰 Fakt.</th><th>🏠 Egen</th><th>Arbetstid</th><th>Restid</th><th>Km</th></tr></thead>
   <tbody>${Object.values(pp).map(p=>`<tr><td><b>${esc(p.namn)}</b></td><td>${p.n}</td><td><b style="color:var(--green)">${p.fakt.toFixed(1)}h</b></td><td style="color:var(--text-sec)">${p.egen.toFixed(1)}h</td><td>${p.tim.toFixed(1)}h</td><td>${p.res.toFixed(1)}h</td><td>${p.km}</td></tr>`).join('')}</tbody>
