@@ -526,12 +526,25 @@ textarea{resize:vertical;min-height:90px}
               <div class="fld"><label>Starttid</label><input type="time" id="t-start" oninput="calcArb()"></div>
               <div class="fld"><label>Sluttid</label><input type="time" id="t-slut" oninput="calcArb()"></div>
               <div class="fld s2"><label>Arbetad tid</label><input type="text" id="t-arb" readonly placeholder="Beräknas"></div>
+              <div class="fld s2"><label>Debitering</label>
+                <div class="chips" id="t-deb-group">
+                  <button class="chip on" data-v="kund" onclick="setDeb('kund',this)">💰 Fakturerbar (kund)</button>
+                  <button class="chip" data-v="egen" onclick="setDeb('egen',this)">🏠 Ej fakturerbar (egen)</button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
         <div class="card">
           <div class="ch"><div class="ch-ic">🚐</div><div><div class="ch-t">Restid & Körsträcka</div><div class="ch-s">Dit- och hemresa</div></div></div>
+          <div class="fld" style="margin-bottom:1rem"><label>Resa från</label>
+            <div class="chips" id="t-resafran-group">
+              <button class="chip on" data-v="hem" onclick="setResaFran('hem',this)">🏠 Hemifrån</button>
+              <button class="chip" data-v="verkstad" onclick="setResaFran('verkstad',this)">🏭 Från verkstad</button>
+              <button class="chip" data-v="annat" onclick="setResaFran('annat',this)">📍 Annat</button>
+            </div>
+          </div>
           <div style="font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:0.6rem">↗ Resa dit</div>
           <div class="fg c3">
             <div class="fld"><label>Start</label><input type="time" id="t-rstart" oninput="calcRes()"></div>
@@ -691,6 +704,10 @@ let sb=null, currentUser=null;
 let projekt=[], rapporter=[], risker=[];
 let aktivtProj=null, redigerarProj=null, projFilter='alla';
 let curKem=[], curUtr=[], curMat=[], redigerarRapport=null;
+let curDeb='kund', curResaFran='hem';
+function setDeb(v,btn){curDeb=v;btn.closest('.chips').querySelectorAll('.chip').forEach(b=>b.classList.remove('on'));btn.classList.add('on');}
+function setResaFran(v,btn){curResaFran=v;btn.closest('.chips').querySelectorAll('.chip').forEach(b=>b.classList.remove('on'));btn.classList.add('on');}
+function setChip(groupId,val){const g=document.getElementById(groupId);if(!g)return;g.querySelectorAll('.chip').forEach(b=>b.classList.toggle('on',b.dataset.v===val));}
 
 let settings=JSON.parse(localStorage.getItem('rc_set')||JSON.stringify({namn:'',roll:'',ansnr:'',avd:'',mil:25,th:130,thel:290,tn:435}));
 
@@ -867,13 +884,15 @@ function renderDetaljStats(){
   const tim=rs.reduce((a,r)=>a+(r.timmar||0),0);
   const res=rs.reduce((a,r)=>a+(r.resetid||0),0);
   const km=rs.reduce((a,r)=>a+(r.km||0),0);
-  const kem=rs.reduce((a,r)=>a+(r.kemikalier||[]).length,0);
+  const fakt=rs.filter(r=>(r.debitering||'kund')!=='egen').reduce((a,r)=>a+(r.timmar||0),0);
+  const egen=rs.filter(r=>(r.debitering||'kund')==='egen').reduce((a,r)=>a+(r.timmar||0),0);
   document.getElementById('d-stats').innerHTML=`
     ${stat('📋',rs.length,'Tidrapporter')}
-    ${stat('⏱',tim.toFixed(1)+'h','Arbetstid')}
+    ${stat('⏱',tim.toFixed(1)+'h','Arbetstid totalt')}
+    ${stat('💰',fakt.toFixed(1)+'h','Fakturerbar tid')}
+    ${stat('🏠',egen.toFixed(1)+'h','Egen tid')}
     ${stat('🚐',res.toFixed(1)+'h','Restid')}
-    ${stat('🚗',km+' km','Körsträcka')}
-    ${stat('🧴',kem,'Kemikalieposter')}`;
+    ${stat('🚗',km+' km','Körsträcka')}`;
 }
 function renderDetaljSumma(){
   const rs=rapporter.filter(r=>r.projekt_id===aktivtProj);
@@ -885,18 +904,19 @@ function renderDetaljSumma(){
   const mat={};rs.forEach(r=>(r.material||[]).forEach(m=>{const key=m.namn+'|'+m.enhet;if(!mat[key])mat[key]={namn:m.namn,enhet:m.enhet,antal:0,kostnad:0};mat[key].antal+=(+m.antal||0);mat[key].kostnad+=(+m.antal||0)*(+m.pris||0);}));
 
   // Per person — arbetstid & restid
-  const pers={};rs.forEach(r=>{const k=r.namn||'Okänd';if(!pers[k])pers[k]={namn:k,n:0,arb:0,res:0,km:0};
-    pers[k].n++;pers[k].arb+=(+r.timmar||0);pers[k].res+=(+r.resetid||0);pers[k].km+=(+r.km||0);});
+  const pers={};rs.forEach(r=>{const k=r.namn||'Okänd';if(!pers[k])pers[k]={namn:k,n:0,arb:0,fakt:0,egen:0,res:0,km:0};
+    pers[k].n++;pers[k].arb+=(+r.timmar||0);pers[k].res+=(+r.resetid||0);pers[k].km+=(+r.km||0);
+    if((r.debitering||'kund')==='egen')pers[k].egen+=(+r.timmar||0);else pers[k].fakt+=(+r.timmar||0);});
   const persArr=Object.values(pers);
 
   const kemArr=Object.values(kem),utrArr=Object.values(utr),matArr=Object.values(mat);
   let h='';
   // Per person
   h+=`<div class="card"><div class="ch"><div class="ch-ic">👥</div><div><div class="ch-t">Tid per person</div><div class="ch-s">Arbetstid och restid per anställd</div></div></div>`;
-  if(persArr.length){const tArb=persArr.reduce((a,p)=>a+p.arb,0),tRes=persArr.reduce((a,p)=>a+p.res,0),tKm=persArr.reduce((a,p)=>a+p.km,0),tN=persArr.reduce((a,p)=>a+p.n,0);
-    h+=`<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Anställd</th><th style="text-align:right">Rapporter</th><th style="text-align:right">Arbetstid</th><th style="text-align:right">Restid</th><th style="text-align:right">Km</th></tr></thead><tbody>`+
-    persArr.map(p=>`<tr><td>👤 <b>${esc(p.namn)}</b></td><td style="text-align:right">${p.n}</td><td style="text-align:right"><b class="mono" style="color:var(--green)">${(+p.arb.toFixed(2))}h</b></td><td style="text-align:right" class="mono">${(+p.res.toFixed(2))}h</td><td style="text-align:right">${p.km}</td></tr>`).join('')+
-    `</tbody><tfoot><tr><td>TOTALT</td><td style="text-align:right">${tN}</td><td style="text-align:right">${(+tArb.toFixed(2))}h</td><td style="text-align:right">${(+tRes.toFixed(2))}h</td><td style="text-align:right">${tKm}</td></tr></tfoot></table></div>`;}
+  if(persArr.length){const tArb=persArr.reduce((a,p)=>a+p.arb,0),tFakt=persArr.reduce((a,p)=>a+p.fakt,0),tEgen=persArr.reduce((a,p)=>a+p.egen,0),tRes=persArr.reduce((a,p)=>a+p.res,0),tKm=persArr.reduce((a,p)=>a+p.km,0),tN=persArr.reduce((a,p)=>a+p.n,0);
+    h+=`<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Anställd</th><th style="text-align:right">Rapp.</th><th style="text-align:right">💰 Fakt.</th><th style="text-align:right">🏠 Egen</th><th style="text-align:right">Arbetstid</th><th style="text-align:right">Restid</th><th style="text-align:right">Km</th></tr></thead><tbody>`+
+    persArr.map(p=>`<tr><td>👤 <b>${esc(p.namn)}</b></td><td style="text-align:right">${p.n}</td><td style="text-align:right"><b class="mono" style="color:var(--green)">${(+p.fakt.toFixed(2))}h</b></td><td style="text-align:right" class="mono" style="color:var(--text-sec)">${(+p.egen.toFixed(2))}h</td><td style="text-align:right" class="mono">${(+p.arb.toFixed(2))}h</td><td style="text-align:right" class="mono">${(+p.res.toFixed(2))}h</td><td style="text-align:right">${p.km}</td></tr>`).join('')+
+    `</tbody><tfoot><tr><td>TOTALT</td><td style="text-align:right">${tN}</td><td style="text-align:right">${(+tFakt.toFixed(2))}h</td><td style="text-align:right">${(+tEgen.toFixed(2))}h</td><td style="text-align:right">${(+tArb.toFixed(2))}h</td><td style="text-align:right">${(+tRes.toFixed(2))}h</td><td style="text-align:right">${tKm}</td></tr></tfoot></table></div>`;}
   else h+='<div style="font-size:13px;color:var(--text-mut)">Ingen tid rapporterad ännu</div>';
   h+='</div>';
   // Kemikalier
@@ -929,7 +949,7 @@ function renderTidlista(){
     const own=r.user_id===currentUser.id;
     return `<div class="row">
       <div class="row-i">
-        <div class="row-t">${r.datum} · ${esc(r.namn||'Okänd')}</div>
+        <div class="row-t">${r.datum} · ${esc(r.namn||'Okänd')} ${(r.debitering||'kund')==='egen'?'<span class="badge b-gray">🏠 Egen</span>':'<span class="badge b-green">💰 Fakt.</span>'}</div>
         <div class="row-s">⏱ ${r.timmar||0}h${r.resetid>0?' · 🚐 '+r.resetid+'h':''}${r.km>0?' · 🚗 '+r.km+'km':''}${(r.kemikalier||[]).length?' · 🧴 '+r.kemikalier.length:''}${(r.utrustning||[]).length?' · 🔧 '+r.utrustning.length:''}</div>
       </div>
       <div class="row-a"><button class="btn btn-gho btn-xs" onclick="visaRapport(${r.id})">Visa</button>
@@ -949,6 +969,8 @@ function nyTidrapport(){
   document.getElementById('t-datum').value=tdy();
   document.getElementById('t-rast').value='0';document.getElementById('t-km').value='0';
   document.getElementById('t-fordon').value='';document.getElementById('t-trakt').value='nej';
+  curDeb='kund';setChip('t-deb-group','kund');
+  curResaFran='hem';setChip('t-resafran-group','hem');
   renderKem();renderUtr();renderMat();resetTimer();
   go('tidform');
 }
@@ -975,6 +997,8 @@ function redigeraTidrapport(id){
   document.getElementById('t-trakt').value=r.traktamente||'nej';
   document.getElementById('t-besk').value=r.beskrivning||'';
   document.getElementById('t-komm').value=r.kommentar||'';
+  curDeb=r.debitering||'kund';setChip('t-deb-group',curDeb);
+  curResaFran=r.resa_fran||'hem';setChip('t-resafran-group',curResaFran);
   calcArb();calcRes();renderKem();renderUtr();renderMat();resetTimer();
   go('tidform');
 }
@@ -1023,6 +1047,7 @@ async function sparaTidrapport(){
     km:parseFloat(document.getElementById('t-km').value)||0,fordon:document.getElementById('t-fordon').value,traktamente:document.getElementById('t-trakt').value,
     beskrivning:document.getElementById('t-besk').value.trim(),kommentar:document.getElementById('t-komm').value.trim(),
     kemikalier:curKem,utrustning:curUtr,material:curMat,
+    debitering:curDeb,resa_fran:curResaFran,
     namn:settings.namn,roll:settings.roll,ansnr:settings.ansnr,user_id:currentUser.id};
   let error;
   if(redigerarRapport)({error}=await sb.from('rapporter').update(r).eq('id',redigerarRapport));
@@ -1302,7 +1327,8 @@ function visaRapport(id){
   <div><div class="l">Roll</div><div class="v">${esc(r.roll||'—')}</div></div><div><div class="l">Anst.nr</div><div class="v">${esc(r.ansnr||'—')}</div></div></div></div>
   <div class="sec"><h2>Tid</h2><table><tr><th>Start</th><th>Slut</th><th>Rast</th><th>Arbetstid</th></tr>
   <tr><td>${r.start_tid||'—'}</td><td>${r.slut_tid||'—'}</td><td>${r.rast_min||0} min</td><td><b>${r.timmar||0} h</b></td></tr></table>
-  ${r.resetid>0?`<div style="margin-top:.75rem;background:#f0fff7;border-radius:8px;padding:.6rem 1rem;font-size:13px">🚐 <b>Restid:</b>${r.resa_start?` dit ${r.resa_start}–${r.resa_slut||''}`:''}${r.hemresa_start?` · hem ${r.hemresa_start}–${r.hemresa_slut||''}`:''} = <b>${r.resetid} h totalt</b></div>`:''}
+  <div style="margin-top:.75rem;font-size:13px">${(r.debitering||'kund')==='egen'?'🏠 <b>Egen tid</b> (ej fakturerbar)':'💰 <b>Fakturerbar tid</b> (kund)'}</div>
+  ${r.resetid>0?`<div style="margin-top:.5rem;background:#f0fff7;border-radius:8px;padding:.6rem 1rem;font-size:13px">🚐 <b>Restid${r.resa_fran?' ('+({hem:'hemifrån',verkstad:'från verkstad',annat:'annat'}[r.resa_fran])+')':''}:</b>${r.resa_start?` dit ${r.resa_start}–${r.resa_slut||''}`:''}${r.hemresa_start?` · hem ${r.hemresa_start}–${r.hemresa_slut||''}`:''} = <b>${r.resetid} h totalt</b></div>`:''}
   ${r.beskrivning?`<p style="margin-top:1rem;font-size:13px;color:#444;line-height:1.6">${esc(r.beskrivning)}</p>`:''}</div>
   <div class="sec"><h2>Resor & Ersättning</h2><table><tr><th>Post</th><th>Detalj</th><th style="text-align:right">Belopp</th></tr>
   <tr><td>Milersättning</td><td>${r.km||0} km × ${s.mil} kr ${r.fordon?'('+esc(r.fordon)+')':''}</td><td style="text-align:right">${mil} kr</td></tr>
@@ -1325,20 +1351,23 @@ function renderStat(){
   const fr=document.getElementById('s-fran').value,ti=document.getElementById('s-till').value,s=settings;
   const list=rapporter.filter(r=>{if(fr&&r.datum<fr)return false;if(ti&&r.datum>ti)return false;return true;});
   const tim=list.reduce((a,r)=>a+(r.timmar||0),0),res=list.reduce((a,r)=>a+(r.resetid||0),0),km=list.reduce((a,r)=>a+(r.km||0),0);
+  const fakt=list.filter(r=>(r.debitering||'kund')!=='egen').reduce((a,r)=>a+(r.timmar||0),0);
+  const egen=list.filter(r=>(r.debitering||'kund')==='egen').reduce((a,r)=>a+(r.timmar||0),0);
   let trakt=0;list.forEach(r=>{if(r.traktamente==='halvdag')trakt+=s.th;else if(r.traktamente==='heldag')trakt+=s.thel;else if(r.traktamente==='natt')trakt+=s.tn;});
-  document.getElementById('stat-cards').innerHTML=`${stat('📋',list.length,'Rapporter')}${stat('⏱',tim.toFixed(1)+'h','Arbetstid')}${stat('🚐',res.toFixed(1)+'h','Restid')}${stat('🚗',km+'km','Körsträcka')}${stat('💰',(km*s.mil+trakt).toFixed(0)+'kr','Ersättning')}`;
-  const pp={};list.forEach(r=>{const k=r.namn||'Okänd';if(!pp[k])pp[k]={namn:k,n:0,tim:0,res:0,km:0};pp[k].n++;pp[k].tim+=(r.timmar||0);pp[k].res+=(r.resetid||0);pp[k].km+=(r.km||0);});
+  document.getElementById('stat-cards').innerHTML=`${stat('📋',list.length,'Rapporter')}${stat('💰',fakt.toFixed(1)+'h','Fakturerbar tid')}${stat('🏠',egen.toFixed(1)+'h','Egen tid')}${stat('🚐',res.toFixed(1)+'h','Restid')}${stat('🚗',km+'km','Körsträcka')}${stat('💵',(km*s.mil+trakt).toFixed(0)+'kr','Ersättning')}`;
+  const pp={};list.forEach(r=>{const k=r.namn||'Okänd';if(!pp[k])pp[k]={namn:k,n:0,tim:0,fakt:0,egen:0,res:0,km:0};pp[k].n++;pp[k].tim+=(r.timmar||0);pp[k].res+=(r.resetid||0);pp[k].km+=(r.km||0);if((r.debitering||'kund')==='egen')pp[k].egen+=(r.timmar||0);else pp[k].fakt+=(r.timmar||0);});
   if(!Object.keys(pp).length){document.getElementById('stat-tbl').innerHTML='<div class="empty"><div class="ei">📊</div>Inga data</div>';return}
-  document.getElementById('stat-tbl').innerHTML=`<table class="tbl"><thead><tr><th>Anställd</th><th>Rapporter</th><th>Arbetstid</th><th>Restid</th><th>Km</th></tr></thead>
-  <tbody>${Object.values(pp).map(p=>`<tr><td><b>${esc(p.namn)}</b></td><td>${p.n}</td><td>${p.tim.toFixed(1)}h</td><td>${p.res.toFixed(1)}h</td><td>${p.km}</td></tr>`).join('')}</tbody>
-  <tfoot><tr><td>TOTALT</td><td>${list.length}</td><td>${tim.toFixed(1)}h</td><td>${res.toFixed(1)}h</td><td>${km}</td></tr></tfoot></table>`;
+  document.getElementById('stat-tbl').innerHTML=`<table class="tbl"><thead><tr><th>Anställd</th><th>Rapp.</th><th>💰 Fakt.</th><th>🏠 Egen</th><th>Arbetstid</th><th>Restid</th><th>Km</th></tr></thead>
+  <tbody>${Object.values(pp).map(p=>`<tr><td><b>${esc(p.namn)}</b></td><td>${p.n}</td><td><b style="color:var(--green)">${p.fakt.toFixed(1)}h</b></td><td style="color:var(--text-sec)">${p.egen.toFixed(1)}h</td><td>${p.tim.toFixed(1)}h</td><td>${p.res.toFixed(1)}h</td><td>${p.km}</td></tr>`).join('')}</tbody>
+  <tfoot><tr><td>TOTALT</td><td>${list.length}</td><td>${fakt.toFixed(1)}h</td><td>${egen.toFixed(1)}h</td><td>${tim.toFixed(1)}h</td><td>${res.toFixed(1)}h</td><td>${km}</td></tr></tfoot></table>`;
 }
 
 // ════ CSV ════
 function exportCSV(){
-  const rows=[['Datum','Projekt','Namn','Roll','Start','Slut','Rast','Arbetstid','Restid','Km','Fordon','Traktamente','Kemikalier','Utrustning','Beskrivning']];
+  const rows=[['Datum','Projekt','Namn','Roll','Debitering','Start','Slut','Rast','Arbetstid','Resa från','Restid','Km','Fordon','Traktamente','Kemikalier','Utrustning','Beskrivning']];
   rapporter.forEach(r=>{const pn=projekt.find(p=>p.id===r.projekt_id)?.namn||'';
-    rows.push([r.datum,pn,r.namn,r.roll,r.start_tid,r.slut_tid,r.rast_min,r.timmar,r.resetid,r.km,r.fordon,r.traktamente,
+    rows.push([r.datum,pn,r.namn,r.roll,(r.debitering||'kund')==='egen'?'Egen (ej fakt)':'Fakturerbar',r.start_tid,r.slut_tid,r.rast_min,r.timmar,
+    {hem:'Hemifrån',verkstad:'Verkstad',annat:'Annat'}[r.resa_fran]||'',r.resetid,r.km,r.fordon,r.traktamente,
     (r.kemikalier||[]).map(k=>`${k.namn} ${k.mangd}${k.enhet}`).join(' | '),(r.utrustning||[]).map(u=>u.namn).join(' | '),r.beskrivning]);});
   const csv=rows.map(r=>r.map(c=>`"${String(c||'').replace(/"/g,'""')}"`).join(';')).join('\n');
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['﻿'+csv],{type:'text/csv'}));a.download=`recondconcept_${tdy()}.csv`;a.click();
